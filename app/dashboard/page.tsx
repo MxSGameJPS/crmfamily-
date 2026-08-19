@@ -88,11 +88,27 @@ export default async function DashboardPage() {
   const income = fin.filter((r) => r.transaction_type === "income" && r.status === "paid").reduce((a, r) => a + Number(r.amount), 0);
   const expense = fin.filter((r) => r.transaction_type === "expense" && r.status === "paid").reduce((a, r) => a + Number(r.amount), 0);
   const low = products.filter((p) => Number(p.stock_qty) <= Number(p.min_stock));
+  const outOfStock = low.filter((p) => Number(p.stock_qty) <= 0);
   const debt = (receivablesR.data ?? []).reduce((a, r) => a + Number(r.amount_total) - Number(r.amount_paid), 0);
 
   return (
     <>
       <PageHeader eyebrow="PAINEL DA LOJA" title={companyR.data?.name ?? "Minha empresa"} description="Resumo operacional e financeiro da empresa." />
+
+      {low.length > 0 ? (
+        <a href="/dashboard/produtos" className={`stock-alert dashboard-stock-alert ${outOfStock.length > 0 ? "critical" : ""}`} role="alert">
+          <div className="stock-alert-icon">!</div>
+          <div className="stock-alert-copy">
+            <strong>{outOfStock.length > 0 ? "Reposição urgente de estoque" : "Produtos no estoque mínimo"}</strong>
+            <p>
+              {low.length} produto(s) precisam de atenção.
+              {outOfStock.length > 0 ? ` ${outOfStock.length} estão sem estoque.` : " Clique para visualizar os produtos e fazer a reposição."}
+            </p>
+          </div>
+          <span className="stock-alert-count">{low.length}</span>
+        </a>
+      ) : null}
+
       <div className="stat-grid">
         <StatCard label="Produtos ativos" value={String(products.length)} hint={`${low.length} em estoque baixo`} tone={low.length ? "warning" : "default"} />
         <StatCard label="Clientes" value={String(customersR.data?.length ?? 0)} />
@@ -105,7 +121,10 @@ export default async function DashboardPage() {
           {!sales.length ? <tr><td colSpan={4} className="empty">Nenhuma venda registrada.</td></tr> : null}
         </tbody></table></div></section>
         <section className="panel"><div className="panel-head"><h2>Estoque baixo</h2><span className="badge warning">{low.length}</span></div><div className="table-wrap"><table><thead><tr><th>Produto</th><th>Atual</th><th>Mínimo</th></tr></thead><tbody>
-          {low.slice(0,8).map((p) => <tr key={p.id}><td>{p.name}</td><td>{p.stock_qty}</td><td>{p.min_stock}</td></tr>)}
+          {low.slice(0,8).map((p) => {
+            const out = Number(p.stock_qty) <= 0;
+            return <tr key={p.id} className={out ? "low-stock-row critical" : "low-stock-row"}><td><strong>{p.name}</strong></td><td><span className={`badge ${out ? "danger" : "warning"}`}>{p.stock_qty}</span></td><td>{p.min_stock}</td></tr>;
+          })}
           {!low.length ? <tr><td colSpan={3} className="empty">Estoque em ordem.</td></tr> : null}
         </tbody></table></div></section>
       </div>
