@@ -13,13 +13,38 @@ export function AccessManager({ companies, profiles }: { companies: Company[]; p
   const [loading, setLoading] = useState(false);
 
   async function createAccess(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault(); setLoading(true); setError(""); setResult(null);
-    const data = new FormData(event.currentTarget);
-    const response = await fetch("/api/superadmin/users", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(Object.fromEntries(data)) });
-    const body = await response.json();
-    if (!response.ok) { setError(body.error ?? "Erro ao criar acesso."); setLoading(false); return; }
-    setResult({ title: `Senha criada para ${body.email} (${body.companyName})`, password: body.password });
-    event.currentTarget.reset(); setLoading(false); router.refresh();
+    event.preventDefault();
+    const form = event.currentTarget;
+
+    setLoading(true);
+    setError("");
+    setResult(null);
+
+    try {
+      const data = new FormData(form);
+      const response = await fetch("/api/superadmin/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(Object.fromEntries(data)),
+      });
+      const body = await response.json();
+
+      if (!response.ok) {
+        setError(body.error ?? "Erro ao criar acesso.");
+        return;
+      }
+
+      setResult({
+        title: `Senha criada para ${body.email} (${body.companyName})`,
+        password: body.password,
+      });
+      form.reset();
+      router.refresh();
+    } catch {
+      setError("Não foi possível concluir a criação do acesso.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function resetPassword(userId: string, name: string) {
