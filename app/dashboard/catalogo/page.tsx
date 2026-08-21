@@ -17,7 +17,7 @@ export default async function CatalogPage() {
     supabase.from("product_variants").select("id,sku,color,size,model,flavor,volume,stock_qty,min_stock,price_override,products(name,price)").eq("is_active", true).order("created_at", { ascending: false }),
     supabase.from("product_batches").select("id,lot_number,expires_at,quantity,notes,products(name)").order("expires_at", { ascending: true }),
     supabase.from("bundles").select("id,name,sku,price,description").eq("is_active", true).order("name"),
-    supabase.from("bundle_items").select("id,bundle_id,quantity,products(name,stock_qty,cost)").order("created_at", { ascending: false }),
+    supabase.from("bundle_items").select("id,bundle_id,quantity,products(name,stock_qty,cost)"),
     supabase.from("customers").select("id,name").eq("is_active", true).order("name"),
   ]);
 
