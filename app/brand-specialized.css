@@ -4,6 +4,7 @@
 .theme-sedux { --navy:#15100f; --navy-2:#2a151f; --gold:#dc1b78; --bg:#fff6fa; --border:#f0dbe5; --shadow:0 12px 30px rgba(121,15,66,.10); }
 .theme-housepet { --navy:#5a0808; --navy-2:#8e1111; --gold:#ef3434; --bg:#fff7f7; --border:#efdada; --shadow:0 12px 30px rgba(111,12,12,.09); }
 
+.app-shell.theme-family,.app-shell.theme-schemmer,.app-shell.theme-sedux,.app-shell.theme-housepet { background:var(--bg); }
 .theme-schemmer .sidebar { background:linear-gradient(180deg,#041431 0%,#08255a 100%); }
 .theme-sedux .sidebar { background:linear-gradient(180deg,#100d0c 0%,#29101d 100%); }
 .theme-housepet .sidebar { background:linear-gradient(180deg,#4d0505 0%,#781010 100%); }
@@ -13,6 +14,8 @@
 .theme-sedux .eyebrow { color:#d70b74; }
 .theme-schemmer .eyebrow { color:#277bd3; }
 .theme-housepet .eyebrow { color:#d71e1e; }
+.side-brand div { min-width:0; }
+.side-brand strong,.side-brand small { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 
 .logout-button { margin-left:auto; border:1px solid rgba(255,255,255,.18); background:rgba(255,255,255,.08); color:white; border-radius:9px; padding:8px 10px; font-size:.78rem; font-weight:700; white-space:nowrap; }
 .logout-button:hover { background:rgba(255,255,255,.15); }
