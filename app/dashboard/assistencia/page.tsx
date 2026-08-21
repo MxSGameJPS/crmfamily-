@@ -3,6 +3,7 @@ import { PageHeader } from "@/components/page-header";
 import { requireStoreUser } from "@/lib/auth";
 import { getCompanyBrand } from "@/lib/company-brand";
 import { brl, dateBR } from "@/lib/format";
+import { relationOne } from "@/lib/supabase/relation";
 import { createClient } from "@/lib/supabase/server";
 import { createDeviceUnit, createServiceOrder, updateServiceOrderStatus } from "@/lib/specialized-actions";
 
@@ -92,7 +93,7 @@ export default async function AssistancePage() {
 
     <section className="panel section-gap"><div className="panel-head"><h2>Ordens de serviço</h2><span className="badge">{orders?.length ?? 0}</span></div><div className="table-wrap"><table><thead><tr><th>OS</th><th>Entrada</th><th>Cliente</th><th>Aparelho</th><th>IMEI</th><th>Defeito</th><th>Orçamento</th><th>Garantia</th><th>Status</th><th>Atualizar</th></tr></thead><tbody>
       {orders?.map((o) => { const warranty = warrantyEnd(o.delivered_at, o.warranty_days); return <tr key={o.id} className={o.status === "ready" ? "highlight-row" : ""}>
-        <td><strong>#{o.order_number}</strong></td><td>{dateBR(o.created_at)}</td><td>{o.customers?.name ?? "—"}</td><td>{o.device_brand} {o.device_model}</td><td>{o.imei ?? "—"}</td><td>{o.issue_reported}</td><td className="amount">{brl(o.quote_amount)}</td><td>{o.status === "delivered" && warranty ? <span className="badge success">até {dateBR(warranty)}</span> : `${o.warranty_days} dias`}</td><td><span className={`badge ${o.status === "ready" || o.status === "delivered" ? "success" : o.status === "cancelled" ? "danger" : "warning"}`}>{statusLabel[o.status] ?? o.status}</span></td>
+        <td><strong>#{o.order_number}</strong></td><td>{dateBR(o.created_at)}</td><td>{relationOne(o.customers)?.name ?? "—"}</td><td>{o.device_brand} {o.device_model}</td><td>{o.imei ?? "—"}</td><td>{o.issue_reported}</td><td className="amount">{brl(o.quote_amount)}</td><td>{o.status === "delivered" && warranty ? <span className="badge success">até {dateBR(warranty)}</span> : `${o.warranty_days} dias`}</td><td><span className={`badge ${o.status === "ready" || o.status === "delivered" ? "success" : o.status === "cancelled" ? "danger" : "warning"}`}>{statusLabel[o.status] ?? o.status}</span></td>
         <td><form action={updateServiceOrderStatus} className="inline-form"><input type="hidden" name="id" value={o.id}/><select name="status" defaultValue={o.status}>{Object.entries(statusLabel).map(([value,label]) => <option key={value} value={value}>{label}</option>)}</select><button className="secondary">Salvar</button></form></td>
       </tr>; })}
       {!orders?.length ? <tr><td colSpan={10} className="empty">Nenhuma ordem de serviço cadastrada.</td></tr> : null}
