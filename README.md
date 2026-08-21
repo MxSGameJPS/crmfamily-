@@ -15,9 +15,10 @@ Cada loja possui identidade visual e recursos próprios, mas continua usando a m
 - Financeiro: entradas, saídas, pendências e baixas.
 - Fornecedores.
 - Clientes devedores / contas a receber.
-- Compras e reposição de estoque.
+- Compras com múltiplos produtos e reposição de estoque.
 - Central de alertas operacionais.
 - Lucro bruto estimado com custo histórico por item vendido.
+- Painel de desempenho dos últimos 30 dias com faturamento diário, ticket médio, margem, produtos mais vendidos, produtos mais lucrativos, melhores clientes e desempenho por categoria.
 - Auditoria das operações dos módulos novos.
 - Edição e arquivamento de produtos, clientes e fornecedores.
 
@@ -26,7 +27,7 @@ Cada loja possui identidade visual e recursos próprios, mas continua usando a m
 - Módulo de Assistência Técnica.
 - Ordens de serviço com cliente, aparelho, IMEI, série, estado físico, defeito, acessórios, técnico, orçamento, peças, mão de obra e previsão.
 - Fluxo de status: recebido, análise, aguardando aprovação, aguardando peça, manutenção, pronto, entregue e cancelado.
-- Controle de garantia por ordem de serviço.
+- Controle de garantia por ordem de serviço, com vencimento calculado a partir da entrega.
 - Controle individual de aparelhos por IMEI e número de série.
 - Valor de compra, valor de venda, cor e garantia por unidade.
 - Alertas de aparelhos prontos e ordens aguardando peça.
@@ -40,7 +41,7 @@ Cada loja possui identidade visual e recursos próprios, mas continua usando a m
 - Agenda de banho, tosa e demais serviços.
 - Responsável pelo atendimento, valor e observações.
 - Fluxo de status: agendado, confirmado, em atendimento, pronto, entregue e cancelado.
-- Central de alertas com agenda do dia.
+- Central de alertas com agenda do dia usando o horário de São Paulo.
 - Histórico de atendimentos preservado pela agenda.
 
 ### Sedux
@@ -55,12 +56,13 @@ Cada loja possui identidade visual e recursos próprios, mas continua usando a m
 
 ### Compras e reposição
 - Pedido de compra por fornecedor.
-- Produto, quantidade, custo unitário, documento/nota e situação de pagamento.
+- Vários produtos no mesmo pedido, cada um com quantidade e custo unitário.
+- Documento/nota, data e situação de pagamento.
 - A mercadoria só altera estoque quando é efetivamente recebida.
 - Ao receber a compra, o sistema:
-  1. aumenta o estoque;
-  2. registra a movimentação;
-  3. atualiza o custo do produto;
+  1. aumenta o estoque de todos os itens;
+  2. registra as movimentações;
+  3. atualiza o custo dos produtos;
   4. marca a compra como recebida;
   5. cria a saída correspondente no financeiro.
 
