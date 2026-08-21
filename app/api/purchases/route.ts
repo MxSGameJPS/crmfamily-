@@ -2,6 +2,12 @@ import { NextResponse } from "next/server";
 import { requireStoreUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 
+type PurchaseInputItem = {
+  product_id: string;
+  quantity: number;
+  unit_cost: number;
+};
+
 function saoPauloDateKey() {
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone: "America/Sao_Paulo",
@@ -17,14 +23,18 @@ export async function POST(request: Request) {
   try {
     const auth = await requireStoreUser();
     const body = await request.json();
-    const items = Array.isArray(body.items) ? body.items : [];
-    if (!items.length) return NextResponse.json({ error: "Adicione ao menos um item à compra." }, { status: 400 });
+    const rawItems: unknown[] = Array.isArray(body.items) ? body.items : [];
+    if (!rawItems.length) return NextResponse.json({ error: "Adicione ao menos um item à compra." }, { status: 400 });
 
-    const normalized = items.map((item: Record<string, unknown>) => ({
-      product_id: String(item.product_id ?? ""),
-      quantity: Number(item.quantity ?? 0),
-      unit_cost: Number(item.unit_cost ?? 0),
-    }));
+    const normalized: PurchaseInputItem[] = rawItems.map((item) => {
+      const record = item && typeof item === "object" ? item as Record<string, unknown> : {};
+      return {
+        product_id: String(record.product_id ?? ""),
+        quantity: Number(record.quantity ?? 0),
+        unit_cost: Number(record.unit_cost ?? 0),
+      };
+    });
+
     if (normalized.some((item) => !item.product_id || !Number.isFinite(item.quantity) || item.quantity <= 0 || !Number.isFinite(item.unit_cost) || item.unit_cost < 0)) {
       return NextResponse.json({ error: "Existem itens inválidos na compra." }, { status: 400 });
     }
