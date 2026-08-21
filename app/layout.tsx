@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import "./stock-alert.css";
 import "./brand-specialized.css";
+import "./module-shortcut.css";
 import { PwaRegister } from "@/components/pwa-register";
 
 export const metadata: Metadata = {
