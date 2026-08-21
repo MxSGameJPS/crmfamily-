@@ -2,6 +2,7 @@ import { PageHeader } from "@/components/page-header";
 import { PurchaseForm } from "@/components/purchase-form";
 import { requireStoreUser } from "@/lib/auth";
 import { brl, dateBR } from "@/lib/format";
+import { relationOne } from "@/lib/supabase/relation";
 import { createClient } from "@/lib/supabase/server";
 import { receivePurchase } from "@/lib/specialized-actions";
 
@@ -43,7 +44,7 @@ export default async function PurchasesPage() {
     </div>
 
     <section className="panel section-gap"><div className="panel-head"><h2>Histórico de compras</h2><span className="badge">{purchases?.length ?? 0}</span></div><div className="table-wrap"><table><thead><tr><th>Compra</th><th>Pedido</th><th>Fornecedor</th><th>Itens</th><th>Total</th><th>Pagamento</th><th>Status</th><th>Ação</th></tr></thead><tbody>
-      {purchases?.map((p) => <tr key={p.id}><td><strong>#{p.purchase_number}</strong>{p.invoice_number ? <small className="stock-row-note">Doc. {p.invoice_number}</small> : null}</td><td>{dateBR(p.ordered_at)}</td><td>{p.suppliers?.name ?? "—"}</td><td>{p.purchase_items?.map((i) => `${i.quantity}× ${i.products?.name ?? "Produto"}`).join(", ") || "—"}</td><td className="amount">{brl(p.total)}</td><td><span className={`badge ${p.payment_status === "paid" ? "success" : "warning"}`}>{p.payment_status === "paid" ? "Pago" : "Pendente"}</span></td><td><span className={`badge ${p.status === "received" ? "success" : p.status === "cancelled" ? "danger" : "warning"}`}>{p.status === "received" ? "Recebida" : p.status === "ordered" ? "Aguardando" : p.status}</span></td><td>{p.status === "ordered" ? <form action={receivePurchase}><input type="hidden" name="id" value={p.id}/><button className="primary">Receber mercadoria</button></form> : <span className="muted">Concluída</span>}</td></tr>)}
+      {purchases?.map((p) => <tr key={p.id}><td><strong>#{p.purchase_number}</strong>{p.invoice_number ? <small className="stock-row-note">Doc. {p.invoice_number}</small> : null}</td><td>{dateBR(p.ordered_at)}</td><td>{relationOne(p.suppliers)?.name ?? "—"}</td><td>{p.purchase_items?.map((i) => `${i.quantity}× ${relationOne(i.products)?.name ?? "Produto"}`).join(", ") || "—"}</td><td className="amount">{brl(p.total)}</td><td><span className={`badge ${p.payment_status === "paid" ? "success" : "warning"}`}>{p.payment_status === "paid" ? "Pago" : "Pendente"}</span></td><td><span className={`badge ${p.status === "received" ? "success" : p.status === "cancelled" ? "danger" : "warning"}`}>{p.status === "received" ? "Recebida" : p.status === "ordered" ? "Aguardando" : p.status}</span></td><td>{p.status === "ordered" ? <form action={receivePurchase}><input type="hidden" name="id" value={p.id}/><button className="primary">Receber mercadoria</button></form> : <span className="muted">Concluída</span>}</td></tr>)}
       {!purchases?.length ? <tr><td colSpan={8} className="empty">Nenhuma compra registrada.</td></tr> : null}
     </tbody></table></div></section>
   </>;
