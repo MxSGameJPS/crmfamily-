@@ -2,6 +2,17 @@ import { NextResponse } from "next/server";
 import { requireStoreUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 
+function saoPauloDateKey() {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return `${values.year}-${values.month}-${values.day}`;
+}
+
 export async function POST(request: Request) {
   try {
     const auth = await requireStoreUser();
@@ -39,7 +50,7 @@ export async function POST(request: Request) {
       status: "ordered",
       total,
       payment_status: body.paymentStatus === "paid" ? "paid" : "pending",
-      ordered_at: body.orderedAt ? String(body.orderedAt) : new Date().toISOString().slice(0, 10),
+      ordered_at: body.orderedAt ? String(body.orderedAt) : saoPauloDateKey(),
       notes: body.notes ? String(body.notes).trim() : null,
       created_by: auth.id,
     }).select("id,purchase_number").single();
