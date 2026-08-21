@@ -4,7 +4,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "CRM Family",
     short_name: "CRM Family",
-    description: "Gestão centralizada das empresas da família",
+    description: "Gestão integrada da Sedux, Schemmer Cell e House Pet",
     start_url: "/dashboard",
     display: "standalone",
     background_color: "#f4f7fb",
