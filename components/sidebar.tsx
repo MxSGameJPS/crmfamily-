@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { getCompanyBrand } from "@/lib/company-brand";
+import { PwaInstallButton } from "@/components/pwa-install-button";
 import type { UserRole } from "@/lib/types";
 
 type NavItem = readonly [href: string, label: string, icon: string];
@@ -97,6 +98,9 @@ export function Sidebar({ role, companyName, companySlug, userName }: Props) {
           return <Link key={href} href={href} className={active ? "active" : ""}><b>{icon}</b>{label}</Link>;
         })}
       </nav>
+      <div className="pwa-install-slot">
+        <PwaInstallButton />
+      </div>
       <div className="side-user">
         <small>Conectado como</small>
         <strong>{userName}</strong>
