@@ -3,6 +3,7 @@
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { PwaInstallButton } from "@/components/pwa-install-button";
 
 export function LoginForm() {
   const router = useRouter();
@@ -49,6 +50,7 @@ export function LoginForm() {
       <button className="primary" type="submit" disabled={loading}>
         {loading ? "Entrando..." : "Entrar"}
       </button>
+      <PwaInstallButton mode="login" />
       <p className="login-footnote">O sistema identifica automaticamente qual empresa este login pode acessar.</p>
     </form>
   );
