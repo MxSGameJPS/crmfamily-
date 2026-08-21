@@ -14,6 +14,7 @@ const baseStoreItems: readonly NavItem[] = [
   ["/dashboard/produtos", "Produtos e estoque", "□"],
   ["/dashboard/clientes", "Clientes", "♙"],
   ["/dashboard/vendas", "Vendas", "▣"],
+  ["/dashboard/desempenho", "Desempenho", "↗"],
   ["/dashboard/compras", "Compras", "⇩"],
   ["/dashboard/financeiro", "Financeiro", "$"],
   ["/dashboard/fornecedores", "Fornecedores", "◇"],
