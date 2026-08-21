@@ -17,6 +17,13 @@ const statusLabel: Record<string, string> = {
   cancelled: "Cancelado",
 };
 
+function warrantyEnd(deliveredAt: string | null, days: number | string) {
+  if (!deliveredAt) return null;
+  const date = new Date(deliveredAt);
+  date.setUTCDate(date.getUTCDate() + Number(days || 0));
+  return date.toISOString();
+}
+
 export default async function AssistancePage() {
   const auth = await requireStoreUser();
   const supabase = await createClient();
@@ -26,7 +33,7 @@ export default async function AssistancePage() {
   const [{ data: customers }, { data: products }, { data: orders }, { data: units }] = await Promise.all([
     supabase.from("customers").select("id,name,phone").eq("is_active", true).order("name"),
     supabase.from("products").select("id,name").eq("is_active", true).order("name"),
-    supabase.from("service_orders").select("id,order_number,device_brand,device_model,imei,issue_reported,technician,quote_amount,warranty_days,estimated_delivery,status,created_at,customers(name,phone)").order("created_at", { ascending: false }).limit(100),
+    supabase.from("service_orders").select("id,order_number,device_brand,device_model,imei,issue_reported,technician,quote_amount,warranty_days,estimated_delivery,status,delivered_at,created_at,customers(name,phone)").order("created_at", { ascending: false }).limit(100),
     supabase.from("device_units").select("id,brand,model,imei,serial_number,color,purchase_cost,sale_price,warranty_days,status,created_at").order("created_at", { ascending: false }).limit(100),
   ]);
 
@@ -64,7 +71,7 @@ export default async function AssistancePage() {
           <label className="wide">Observações<textarea name="notes" /></label>
           <div className="form-actions"><button className="primary">Abrir ordem de serviço</button></div>
         </form>
-        <p className="callout section-gap">Por segurança, o CRM não armazena senha de desbloqueio do aparelho em texto aberto.</p>
+        <p className="callout section-gap">Por segurança, o CRM não armazena senha de desbloqueio do aparelho em texto aberto. A garantia começa a contar quando a OS é marcada como entregue.</p>
       </div></section>
 
       <section className="panel"><div className="panel-head"><h2>Controle de aparelhos / IMEI</h2></div><div className="panel-body">
@@ -83,12 +90,12 @@ export default async function AssistancePage() {
       </div></section>
     </div>
 
-    <section className="panel section-gap"><div className="panel-head"><h2>Ordens de serviço</h2><span className="badge">{orders?.length ?? 0}</span></div><div className="table-wrap"><table><thead><tr><th>OS</th><th>Entrada</th><th>Cliente</th><th>Aparelho</th><th>IMEI</th><th>Defeito</th><th>Orçamento</th><th>Status</th><th>Atualizar</th></tr></thead><tbody>
-      {orders?.map((o) => <tr key={o.id} className={o.status === "ready" ? "highlight-row" : ""}>
-        <td><strong>#{o.order_number}</strong></td><td>{dateBR(o.created_at)}</td><td>{o.customers?.name ?? "—"}</td><td>{o.device_brand} {o.device_model}</td><td>{o.imei ?? "—"}</td><td>{o.issue_reported}</td><td className="amount">{brl(o.quote_amount)}</td><td><span className={`badge ${o.status === "ready" ? "success" : o.status === "cancelled" ? "danger" : "warning"}`}>{statusLabel[o.status] ?? o.status}</span></td>
+    <section className="panel section-gap"><div className="panel-head"><h2>Ordens de serviço</h2><span className="badge">{orders?.length ?? 0}</span></div><div className="table-wrap"><table><thead><tr><th>OS</th><th>Entrada</th><th>Cliente</th><th>Aparelho</th><th>IMEI</th><th>Defeito</th><th>Orçamento</th><th>Garantia</th><th>Status</th><th>Atualizar</th></tr></thead><tbody>
+      {orders?.map((o) => { const warranty = warrantyEnd(o.delivered_at, o.warranty_days); return <tr key={o.id} className={o.status === "ready" ? "highlight-row" : ""}>
+        <td><strong>#{o.order_number}</strong></td><td>{dateBR(o.created_at)}</td><td>{o.customers?.name ?? "—"}</td><td>{o.device_brand} {o.device_model}</td><td>{o.imei ?? "—"}</td><td>{o.issue_reported}</td><td className="amount">{brl(o.quote_amount)}</td><td>{o.status === "delivered" && warranty ? <span className="badge success">até {dateBR(warranty)}</span> : `${o.warranty_days} dias`}</td><td><span className={`badge ${o.status === "ready" || o.status === "delivered" ? "success" : o.status === "cancelled" ? "danger" : "warning"}`}>{statusLabel[o.status] ?? o.status}</span></td>
         <td><form action={updateServiceOrderStatus} className="inline-form"><input type="hidden" name="id" value={o.id}/><select name="status" defaultValue={o.status}>{Object.entries(statusLabel).map(([value,label]) => <option key={value} value={value}>{label}</option>)}</select><button className="secondary">Salvar</button></form></td>
-      </tr>)}
-      {!orders?.length ? <tr><td colSpan={9} className="empty">Nenhuma ordem de serviço cadastrada.</td></tr> : null}
+      </tr>; })}
+      {!orders?.length ? <tr><td colSpan={10} className="empty">Nenhuma ordem de serviço cadastrada.</td></tr> : null}
     </tbody></table></div></section>
 
     <section className="panel section-gap"><div className="panel-head"><h2>Aparelhos por unidade</h2><span className="badge">{units?.length ?? 0}</span></div><div className="table-wrap"><table><thead><tr><th>Aparelho</th><th>IMEI</th><th>Série</th><th>Cor</th><th>Custo</th><th>Venda</th><th>Garantia</th><th>Status</th></tr></thead><tbody>
