@@ -27,6 +27,18 @@ export async function GET(request: Request) {
     const { data } = await q;
     headers = ["Empresa","Venda","Data","Cliente","Total","Recebido","Forma","Situação"];
     rows = (data ?? []).map((r) => [names.get(r.company_id), r.sale_number, r.sold_at, r.customers?.name ?? "", r.total, r.amount_paid, r.payment_method, r.payment_status]);
+  } else if (type === "profit") {
+    let q = supabase.from("sale_items").select("company_id,sale_id,product_name,quantity,unit_price,line_total,unit_cost,sales(sale_number,sold_at)").order("id", { ascending: false });
+    if (companyId) q = q.eq("company_id", companyId);
+    const { data } = await q;
+    headers = ["Empresa","Venda","Data","Produto/Kit","Quantidade","Receita","Custo unitário","Custo total","Lucro bruto","Margem %"];
+    rows = (data ?? []).map((r) => {
+      const revenue = Number(r.line_total ?? 0);
+      const cost = Number(r.unit_cost ?? 0) * Number(r.quantity ?? 0);
+      const profit = revenue - cost;
+      const margin = revenue > 0 ? (profit / revenue) * 100 : 0;
+      return [names.get(r.company_id), r.sales?.sale_number ?? "", r.sales?.sold_at ?? "", r.product_name, r.quantity, revenue, r.unit_cost, cost, profit, margin.toFixed(2)];
+    });
   } else if (type === "customers") {
     let q = supabase.from("customers").select("company_id,name,document,phone,email,address,is_active").order("name");
     if (companyId) q = q.eq("company_id", companyId);
@@ -58,6 +70,18 @@ export async function GET(request: Request) {
     const { data } = await q;
     headers = ["Empresa","Cliente","Descrição","Total","Pago","Saldo","Vencimento","Status"];
     rows = (data ?? []).map((r) => [names.get(r.company_id), r.customers?.name ?? "", r.description, r.amount_total, r.amount_paid, Number(r.amount_total)-Number(r.amount_paid), r.due_date, r.status]);
+  } else if (type === "purchases") {
+    let q = supabase.from("purchases").select("company_id,purchase_number,invoice_number,ordered_at,received_at,status,total,payment_status,suppliers(name),purchase_items(quantity,unit_cost,products(name,sku))").order("created_at", { ascending: false });
+    if (companyId) q = q.eq("company_id", companyId);
+    const { data } = await q;
+    headers = ["Empresa","Compra","Documento","Pedido","Recebimento","Fornecedor","Itens","Total","Pagamento","Status"];
+    rows = (data ?? []).map((r) => [names.get(r.company_id), r.purchase_number, r.invoice_number, r.ordered_at, r.received_at, r.suppliers?.name ?? "", r.purchase_items?.map((i) => `${i.quantity}x ${i.products?.name ?? "Produto"} @ ${i.unit_cost}`).join(" | ") ?? "", r.total, r.payment_status, r.status]);
+  } else if (type === "audit") {
+    let q = supabase.from("audit_logs").select("company_id,user_id,action,entity_type,entity_id,details,created_at").order("created_at", { ascending: false }).limit(5000);
+    if (companyId) q = q.eq("company_id", companyId);
+    const { data } = await q;
+    headers = ["Empresa","Data","Usuário ID","Ação","Entidade","Entidade ID","Detalhes"];
+    rows = (data ?? []).map((r) => [names.get(r.company_id), r.created_at, r.user_id, r.action, r.entity_type, r.entity_id, r.details ? JSON.stringify(r.details) : ""]);
   } else {
     return new Response("Tipo de relatório inválido", { status: 400 });
   }
