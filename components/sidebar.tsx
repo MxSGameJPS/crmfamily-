@@ -7,7 +7,9 @@ import { createClient } from "@/lib/supabase/client";
 import { getCompanyBrand } from "@/lib/company-brand";
 import type { UserRole } from "@/lib/types";
 
-const baseStoreItems = [
+type NavItem = readonly [href: string, label: string, icon: string];
+
+const baseStoreItems: readonly NavItem[] = [
   ["/dashboard", "Visão geral", "⌂"],
   ["/dashboard/produtos", "Produtos e estoque", "□"],
   ["/dashboard/clientes", "Clientes", "♙"],
@@ -17,13 +19,13 @@ const baseStoreItems = [
   ["/dashboard/fornecedores", "Fornecedores", "◇"],
   ["/dashboard/devedores", "Clientes devedores", "!"],
   ["/dashboard/alertas", "Central de alertas", "●"],
-] as const;
+];
 
-const superItems = [
+const superItems: readonly NavItem[] = [
   ["/dashboard", "Visão geral", "⌂"],
   ["/dashboard/relatorios", "Relatórios", "▤"],
   ["/dashboard/acessos", "Acessos das lojas", "⚿"],
-] as const;
+];
 
 type Props = {
   role: UserRole;
@@ -38,15 +40,15 @@ export function Sidebar({ role, companyName, companySlug, userName }: Props) {
   const [loggingOut, setLoggingOut] = useState(false);
   const brand = getCompanyBrand(companySlug, companyName);
 
-  const items = useMemo(() => {
+  const items = useMemo<readonly NavItem[]>(() => {
     if (role === "super_admin") return superItems;
 
-    const specialized = brand.key === "schemmer"
-      ? [["/dashboard/assistencia", "Assistência técnica", "⚙"] as const]
+    const specialized: readonly NavItem[] = brand.key === "schemmer"
+      ? [["/dashboard/assistencia", "Assistência técnica", "⚙"]]
       : brand.key === "housepet"
-        ? [["/dashboard/pets", "Pets e agenda", "♥"] as const]
+        ? [["/dashboard/pets", "Pets e agenda", "♥"]]
         : brand.key === "sedux"
-          ? [["/dashboard/catalogo", "Variações, kits e validade", "◆"] as const]
+          ? [["/dashboard/catalogo", "Variações, kits e validade", "◆"]]
           : [];
 
     return [baseStoreItems[0], ...specialized, ...baseStoreItems.slice(1)];
