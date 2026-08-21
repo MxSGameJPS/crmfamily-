@@ -1,3 +1,4 @@
+import { ResponsiveEnhancer } from "@/components/responsive-enhancer";
 import { Sidebar } from "@/components/sidebar";
 import { requireUser } from "@/lib/auth";
 import { getCompanyBrand } from "@/lib/company-brand";
@@ -23,6 +24,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     <div className={`app-shell ${auth.role === "super_admin" ? "theme-family" : brand.className}`}>
       <Sidebar role={auth.role} companyName={companyName} companySlug={companySlug} userName={auth.fullName ?? auth.email ?? "Usuário"} />
       <main className="content">{children}</main>
+      <ResponsiveEnhancer />
     </div>
   );
 }
