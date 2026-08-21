@@ -1,19 +1,22 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { getCompanyBrand } from "@/lib/company-brand";
 import type { UserRole } from "@/lib/types";
 
-const storeItems = [
+const baseStoreItems = [
   ["/dashboard", "Visão geral", "⌂"],
   ["/dashboard/produtos", "Produtos e estoque", "□"],
   ["/dashboard/clientes", "Clientes", "♙"],
   ["/dashboard/vendas", "Vendas", "▣"],
+  ["/dashboard/compras", "Compras", "⇩"],
   ["/dashboard/financeiro", "Financeiro", "$"],
   ["/dashboard/fornecedores", "Fornecedores", "◇"],
   ["/dashboard/devedores", "Clientes devedores", "!"],
+  ["/dashboard/alertas", "Central de alertas", "●"],
 ] as const;
 
 const superItems = [
@@ -22,11 +25,32 @@ const superItems = [
   ["/dashboard/acessos", "Acessos das lojas", "⚿"],
 ] as const;
 
-export function Sidebar({ role, companyName, userName }: { role: UserRole; companyName: string; userName: string }) {
+type Props = {
+  role: UserRole;
+  companyName: string;
+  companySlug?: string | null;
+  userName: string;
+};
+
+export function Sidebar({ role, companyName, companySlug, userName }: Props) {
   const pathname = usePathname();
   const router = useRouter();
   const [loggingOut, setLoggingOut] = useState(false);
-  const items = role === "super_admin" ? superItems : storeItems;
+  const brand = getCompanyBrand(companySlug, companyName);
+
+  const items = useMemo(() => {
+    if (role === "super_admin") return superItems;
+
+    const specialized = brand.key === "schemmer"
+      ? [["/dashboard/assistencia", "Assistência técnica", "⚙"] as const]
+      : brand.key === "housepet"
+        ? [["/dashboard/pets", "Pets e agenda", "♥"] as const]
+        : brand.key === "sedux"
+          ? [["/dashboard/catalogo", "Variações, kits e validade", "◆"] as const]
+          : [];
+
+    return [baseStoreItems[0], ...specialized, ...baseStoreItems.slice(1)];
+  }, [role, brand.key]);
 
   async function logout() {
     if (loggingOut) return;
@@ -48,10 +72,10 @@ export function Sidebar({ role, companyName, userName }: { role: UserRole; compa
   return (
     <aside className="sidebar">
       <div className="side-brand">
-        <span>CF</span>
+        <span>{role === "super_admin" ? "CF" : brand.short}</span>
         <div>
-          <strong>CRM Family</strong>
-          <small>{role === "super_admin" ? "SuperAdmin" : companyName}</small>
+          <strong>{role === "super_admin" ? "CRM Family" : brand.name}</strong>
+          <small>{role === "super_admin" ? "SuperAdmin" : brand.businessLabel}</small>
         </div>
         <button
           type="button"
@@ -59,17 +83,7 @@ export function Sidebar({ role, companyName, userName }: { role: UserRole; compa
           disabled={loggingOut}
           title="Sair da conta"
           aria-label="Sair da conta"
-          style={{
-            marginLeft: "auto",
-            border: "1px solid rgba(255,255,255,.18)",
-            background: "rgba(255,255,255,.08)",
-            color: "white",
-            borderRadius: 9,
-            padding: "8px 10px",
-            fontSize: ".78rem",
-            fontWeight: 700,
-            whiteSpace: "nowrap",
-          }}
+          className="logout-button"
         >
           {loggingOut ? "Saindo..." : "Sair"}
         </button>
