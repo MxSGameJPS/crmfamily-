@@ -1,8 +1,8 @@
 -- CRM Family - upgrade 2026-08-21
--- Execute uma vez no SQL Editor do Supabase do projeto existente.
--- NÃO inclui PDV / frente de caixa.
+-- Execute no SQL Editor do Supabase do projeto existente.
+-- O script é seguro para reexecução e NÃO inclui PDV / frente de caixa.
 
--- Identidade correta das empresas
+-- Identidade correta das empresas ------------------------------------------------
 update public.companies set name = 'Sedux', slug = 'sedux', business_type = 'adult_retail'
 where slug in ('sexy-shop', 'sedux');
 update public.companies set name = 'Schemmer Cell', slug = 'schemmer-cell', business_type = 'cell_service'
@@ -10,14 +10,18 @@ where slug in ('loja-celular', 'schemmer-cell');
 update public.companies set name = 'House Pet', slug = 'house-pet', business_type = 'pet_service'
 where slug in ('petshop', 'house-pet');
 
--- Custo histórico por item vendido para cálculo de lucro bruto.
+-- Custo histórico por item vendido para cálculo de lucro bruto -----------------
 alter table public.sale_items add column if not exists unit_cost numeric(14,2) not null default 0 check (unit_cost >= 0);
 update public.sale_items si set unit_cost = p.cost
 from public.products p
 where si.product_id = p.id and si.unit_cost = 0;
 
 create or replace function public.fill_sale_item_cost()
-returns trigger language plpgsql security invoker set search_path = '' as $$
+returns trigger
+language plpgsql
+security invoker
+set search_path = ''
+as $$
 begin
   if new.product_id is not null and coalesce(new.unit_cost, 0) = 0 then
     select cost into new.unit_cost from public.products where id = new.product_id;
@@ -29,7 +33,7 @@ drop trigger if exists sale_items_fill_cost on public.sale_items;
 create trigger sale_items_fill_cost before insert on public.sale_items
 for each row execute function public.fill_sale_item_cost();
 
--- SCHEMMER CELL --------------------------------------------------------------
+-- SCHEMMER CELL ----------------------------------------------------------------
 create table if not exists public.device_units (
   id uuid primary key default gen_random_uuid(),
   company_id uuid not null references public.companies(id) on delete restrict,
@@ -78,7 +82,7 @@ create table if not exists public.service_orders (
 create index if not exists service_orders_company_status_idx on public.service_orders(company_id,status,created_at desc);
 create index if not exists service_orders_imei_idx on public.service_orders(company_id,imei);
 
--- HOUSE PET ------------------------------------------------------------------
+-- HOUSE PET --------------------------------------------------------------------
 create table if not exists public.pets (
   id uuid primary key default gen_random_uuid(),
   company_id uuid not null references public.companies(id) on delete restrict,
@@ -118,7 +122,7 @@ create table if not exists public.pet_appointments (
 );
 create index if not exists pet_appointments_company_date_idx on public.pet_appointments(company_id,scheduled_at);
 
--- SEDUX ----------------------------------------------------------------------
+-- SEDUX ------------------------------------------------------------------------
 create table if not exists public.product_variants (
   id uuid primary key default gen_random_uuid(),
   company_id uuid not null references public.companies(id) on delete restrict,
@@ -173,7 +177,7 @@ create table if not exists public.bundle_items (
   unique(bundle_id,product_id)
 );
 
--- COMPRAS / REPOSIÇÃO --------------------------------------------------------
+-- COMPRAS / REPOSIÇÃO ----------------------------------------------------------
 create table if not exists public.purchases (
   id uuid primary key default gen_random_uuid(),
   company_id uuid not null references public.companies(id) on delete restrict,
@@ -202,7 +206,7 @@ create table if not exists public.purchase_items (
 );
 create index if not exists purchases_company_idx on public.purchases(company_id,created_at desc);
 
--- AUDITORIA ------------------------------------------------------------------
+-- AUDITORIA --------------------------------------------------------------------
 create table if not exists public.audit_logs (
   id uuid primary key default gen_random_uuid(),
   company_id uuid references public.companies(id) on delete restrict,
@@ -215,31 +219,54 @@ create table if not exists public.audit_logs (
 );
 create index if not exists audit_logs_company_idx on public.audit_logs(company_id,created_at desc);
 
--- updated_at dos novos módulos
+-- updated_at dos novos módulos -------------------------------------------------
 DO $$
 DECLARE t text;
 BEGIN
   FOREACH t IN ARRAY ARRAY['device_units','service_orders','pets','pet_appointments','product_variants','product_batches','bundles','purchases']
   LOOP
-    EXECUTE format('DROP TRIGGER IF EXISTS %I_updated_at ON public.%I', t, t);
-    EXECUTE format('CREATE TRIGGER %I_updated_at BEFORE UPDATE ON public.%I FOR EACH ROW EXECUTE FUNCTION public.set_updated_at()', t, t);
+    EXECUTE format('DROP TRIGGER IF EXISTS %I ON public.%I', t || '_updated_at', t);
+    EXECUTE format('CREATE TRIGGER %I BEFORE UPDATE ON public.%I FOR EACH ROW EXECUTE FUNCTION public.set_updated_at()', t || '_updated_at', t);
   END LOOP;
 END $$;
 
--- Segurança: SuperAdmin lê tudo; usuários de loja operam somente a própria empresa.
+-- Segurança: SuperAdmin lê tudo; usuários operam apenas a própria empresa -------
 DO $$
 DECLARE t text;
 BEGIN
   FOREACH t IN ARRAY ARRAY['device_units','service_orders','pets','pet_appointments','product_variants','product_batches','bundles','bundle_items','purchases','purchase_items','audit_logs']
   LOOP
     EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY', t);
-    EXECUTE format('CREATE POLICY %I_select ON public.%I FOR SELECT TO authenticated USING ((auth.jwt()->''app_metadata''->>''role'') = ''super_admin'' OR company_id = nullif(auth.jwt()->''app_metadata''->>''company_id'','''')::uuid)', t, t);
+
+    EXECUTE format('DROP POLICY IF EXISTS %I ON public.%I', t || '_select', t);
+    EXECUTE format(
+      'CREATE POLICY %I ON public.%I FOR SELECT TO authenticated USING ((auth.jwt()->''app_metadata''->>''role'') = ''super_admin'' OR company_id = nullif(auth.jwt()->''app_metadata''->>''company_id'','''')::uuid)',
+      t || '_select', t
+    );
+
+    EXECUTE format('DROP POLICY IF EXISTS %I ON public.%I', t || '_insert', t);
     IF t <> 'audit_logs' THEN
-      EXECUTE format('CREATE POLICY %I_insert ON public.%I FOR INSERT TO authenticated WITH CHECK ((auth.jwt()->''app_metadata''->>''role'') IN (''store_admin'',''store_user'') AND company_id = nullif(auth.jwt()->''app_metadata''->>''company_id'','''')::uuid)', t, t);
-      EXECUTE format('CREATE POLICY %I_update ON public.%I FOR UPDATE TO authenticated USING ((auth.jwt()->''app_metadata''->>''role'') IN (''store_admin'',''store_user'') AND company_id = nullif(auth.jwt()->''app_metadata''->>''company_id'','''')::uuid) WITH CHECK ((auth.jwt()->''app_metadata''->>''role'') IN (''store_admin'',''store_user'') AND company_id = nullif(auth.jwt()->''app_metadata''->>''company_id'','''')::uuid)', t, t);
-      EXECUTE format('CREATE POLICY %I_delete ON public.%I FOR DELETE TO authenticated USING ((auth.jwt()->''app_metadata''->>''role'') IN (''store_admin'',''store_user'') AND company_id = nullif(auth.jwt()->''app_metadata''->>''company_id'','''')::uuid)', t, t);
+      EXECUTE format(
+        'CREATE POLICY %I ON public.%I FOR INSERT TO authenticated WITH CHECK ((auth.jwt()->''app_metadata''->>''role'') IN (''store_admin'',''store_user'') AND company_id = nullif(auth.jwt()->''app_metadata''->>''company_id'','''')::uuid)',
+        t || '_insert', t
+      );
+
+      EXECUTE format('DROP POLICY IF EXISTS %I ON public.%I', t || '_update', t);
+      EXECUTE format(
+        'CREATE POLICY %I ON public.%I FOR UPDATE TO authenticated USING ((auth.jwt()->''app_metadata''->>''role'') IN (''store_admin'',''store_user'') AND company_id = nullif(auth.jwt()->''app_metadata''->>''company_id'','''')::uuid) WITH CHECK ((auth.jwt()->''app_metadata''->>''role'') IN (''store_admin'',''store_user'') AND company_id = nullif(auth.jwt()->''app_metadata''->>''company_id'','''')::uuid)',
+        t || '_update', t
+      );
+
+      EXECUTE format('DROP POLICY IF EXISTS %I ON public.%I', t || '_delete', t);
+      EXECUTE format(
+        'CREATE POLICY %I ON public.%I FOR DELETE TO authenticated USING ((auth.jwt()->''app_metadata''->>''role'') IN (''store_admin'',''store_user'') AND company_id = nullif(auth.jwt()->''app_metadata''->>''company_id'','''')::uuid)',
+        t || '_delete', t
+      );
     ELSE
-      EXECUTE format('CREATE POLICY %I_insert ON public.%I FOR INSERT TO authenticated WITH CHECK (company_id = nullif(auth.jwt()->''app_metadata''->>''company_id'','''')::uuid)', t, t);
+      EXECUTE format(
+        'CREATE POLICY %I ON public.%I FOR INSERT TO authenticated WITH CHECK ((auth.jwt()->''app_metadata''->>''role'') IN (''store_admin'',''store_user'') AND company_id = nullif(auth.jwt()->''app_metadata''->>''company_id'','''')::uuid)',
+        t || '_insert', t
+      );
     END IF;
   END LOOP;
 END $$;
@@ -248,74 +275,130 @@ grant select,insert,update,delete on public.device_units,public.service_orders,p
 grant select,insert on public.audit_logs to authenticated;
 grant usage,select on all sequences in schema public to authenticated;
 
--- Receber compra: atualiza custo, estoque, histórico e financeiro de forma atômica.
+-- Receber compra: estoque, custo, histórico e financeiro em uma transação --------
 create or replace function public.receive_purchase(p_purchase_id uuid)
-returns void language plpgsql security invoker set search_path = '' as $$
+returns void
+language plpgsql
+security invoker
+set search_path = ''
+as $$
 declare
   v_purchase record;
   v_item record;
   v_total numeric := 0;
+  v_rows integer;
 begin
-  if (auth.jwt()->'app_metadata'->>'role') not in ('store_admin','store_user') then raise exception 'Sem permissão'; end if;
+  if (auth.jwt()->'app_metadata'->>'role') not in ('store_admin','store_user') then
+    raise exception 'Sem permissão';
+  end if;
+
   select * into v_purchase from public.purchases where id = p_purchase_id for update;
   if not found then raise exception 'Compra não encontrada'; end if;
-  if v_purchase.company_id <> nullif(auth.jwt()->'app_metadata'->>'company_id','')::uuid then raise exception 'Compra pertence a outra empresa'; end if;
+  if v_purchase.company_id <> nullif(auth.jwt()->'app_metadata'->>'company_id','')::uuid then
+    raise exception 'Compra pertence a outra empresa';
+  end if;
   if v_purchase.status = 'received' then raise exception 'Compra já recebida'; end if;
+  if v_purchase.status = 'cancelled' then raise exception 'Compra cancelada'; end if;
+  if not exists (select 1 from public.purchase_items where purchase_id = p_purchase_id) then
+    raise exception 'Compra sem itens';
+  end if;
 
   for v_item in select * from public.purchase_items where purchase_id = p_purchase_id loop
     v_total := v_total + (v_item.quantity * v_item.unit_cost);
-    update public.products set stock_qty = stock_qty + v_item.quantity, cost = v_item.unit_cost where id = v_item.product_id;
+
+    update public.products
+       set stock_qty = stock_qty + v_item.quantity,
+           cost = v_item.unit_cost
+     where id = v_item.product_id
+       and company_id = v_purchase.company_id;
+    get diagnostics v_rows = row_count;
+    if v_rows <> 1 then raise exception 'Produto da compra inválido'; end if;
+
     insert into public.inventory_movements(company_id,product_id,movement_type,quantity,reason,reference_type,reference_id,created_by)
     values(v_purchase.company_id,v_item.product_id,'entry',v_item.quantity,'Recebimento de compra','purchase',p_purchase_id,auth.uid());
   end loop;
 
   update public.purchases set total = v_total,status='received',received_at=now() where id=p_purchase_id;
+
   if v_total > 0 then
-    insert into public.financial_transactions(company_id,transaction_type,category,description,amount,status,due_date,supplier_id,created_by)
-    values(v_purchase.company_id,'expense','Compras','Compra de mercadorias #' || v_purchase.purchase_number,v_total,v_purchase.payment_status,current_date,v_purchase.supplier_id,auth.uid());
+    insert into public.financial_transactions(
+      company_id,transaction_type,category,description,amount,status,due_date,paid_at,supplier_id,created_by
+    ) values (
+      v_purchase.company_id,'expense','Compras','Compra de mercadorias #' || v_purchase.purchase_number,
+      v_total,v_purchase.payment_status,current_date,
+      case when v_purchase.payment_status = 'paid' then now() else null end,
+      v_purchase.supplier_id,auth.uid()
+    );
   end if;
 end;
 $$;
 revoke all on function public.receive_purchase(uuid) from public,anon;
 grant execute on function public.receive_purchase(uuid) to authenticated;
 
--- Venda de kit Sedux: baixa os componentes e gera venda/financeiro sem depender de PDV.
+-- Venda de kit Sedux: baixa componentes e gera venda/financeiro sem PDV ----------
 create or replace function public.create_bundle_sale(p_bundle_id uuid,p_customer_id uuid,p_payment_method text)
-returns uuid language plpgsql security invoker set search_path = '' as $$
+returns uuid
+language plpgsql
+security invoker
+set search_path = ''
+as $$
 declare
   v_company_id uuid := nullif(auth.jwt()->'app_metadata'->>'company_id','')::uuid;
   v_bundle record;
   v_component record;
   v_sale_id uuid;
   v_cost numeric := 0;
+  v_component_count integer := 0;
 begin
-  if (auth.jwt()->'app_metadata'->>'role') not in ('store_admin','store_user') then raise exception 'Sem permissão'; end if;
+  if (auth.jwt()->'app_metadata'->>'role') not in ('store_admin','store_user') or v_company_id is null then
+    raise exception 'Sem permissão';
+  end if;
+
   select * into v_bundle from public.bundles where id=p_bundle_id and is_active=true for update;
   if not found or v_bundle.company_id <> v_company_id then raise exception 'Kit inválido'; end if;
 
+  if p_customer_id is not null and not exists (
+    select 1 from public.customers where id = p_customer_id and company_id = v_company_id and is_active = true
+  ) then
+    raise exception 'Cliente inválido';
+  end if;
+
   for v_component in
     select bi.quantity,p.id,p.name,p.stock_qty,p.cost
-    from public.bundle_items bi join public.products p on p.id=bi.product_id
-    where bi.bundle_id=p_bundle_id
+    from public.bundle_items bi
+    join public.products p on p.id=bi.product_id and p.company_id=v_company_id and p.is_active=true
+    where bi.bundle_id=p_bundle_id and bi.company_id=v_company_id
   loop
-    if v_component.stock_qty < v_component.quantity then raise exception 'Estoque insuficiente para %',v_component.name; end if;
+    v_component_count := v_component_count + 1;
+    if v_component.stock_qty < v_component.quantity then
+      raise exception 'Estoque insuficiente para %',v_component.name;
+    end if;
     v_cost := v_cost + (v_component.cost * v_component.quantity);
   end loop;
 
+  if v_component_count = 0 then raise exception 'Adicione produtos ao kit antes de vender'; end if;
+
   insert into public.sales(company_id,customer_id,subtotal,discount,total,amount_paid,payment_method,payment_status,created_by)
-  values(v_company_id,p_customer_id,v_bundle.price,0,v_bundle.price,v_bundle.price,coalesce(p_payment_method,'Pix'),'paid',auth.uid()) returning id into v_sale_id;
+  values(v_company_id,p_customer_id,v_bundle.price,0,v_bundle.price,v_bundle.price,coalesce(nullif(trim(p_payment_method),''),'Pix'),'paid',auth.uid())
+  returning id into v_sale_id;
 
   insert into public.sale_items(company_id,sale_id,product_id,product_name,quantity,unit_price,line_total,unit_cost)
   values(v_company_id,v_sale_id,null,'KIT: '||v_bundle.name,1,v_bundle.price,v_bundle.price,v_cost);
 
-  for v_component in select bi.quantity,p.id,p.name from public.bundle_items bi join public.products p on p.id=bi.product_id where bi.bundle_id=p_bundle_id loop
-    update public.products set stock_qty=stock_qty-v_component.quantity where id=v_component.id;
+  for v_component in
+    select bi.quantity,p.id,p.name
+    from public.bundle_items bi
+    join public.products p on p.id=bi.product_id and p.company_id=v_company_id and p.is_active=true
+    where bi.bundle_id=p_bundle_id and bi.company_id=v_company_id
+  loop
+    update public.products set stock_qty=stock_qty-v_component.quantity where id=v_component.id and company_id=v_company_id;
     insert into public.inventory_movements(company_id,product_id,movement_type,quantity,reason,reference_type,reference_id,created_by)
     values(v_company_id,v_component.id,'exit',v_component.quantity,'Venda de kit: '||v_bundle.name,'sale',v_sale_id,auth.uid());
   end loop;
 
   insert into public.financial_transactions(company_id,transaction_type,category,description,amount,status,paid_at,sale_id,customer_id,created_by)
   values(v_company_id,'income','Vendas','Venda de kit: '||v_bundle.name,v_bundle.price,'paid',now(),v_sale_id,p_customer_id,auth.uid());
+
   return v_sale_id;
 end;
 $$;
