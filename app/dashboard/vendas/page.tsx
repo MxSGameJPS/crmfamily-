@@ -3,6 +3,7 @@ import { SaleForm } from "@/components/sale-form";
 import { StatCard } from "@/components/stat-card";
 import { requireStoreUser } from "@/lib/auth";
 import { brl, dateBR } from "@/lib/format";
+import { relationOne } from "@/lib/supabase/relation";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function SalesPage() {
@@ -27,7 +28,7 @@ export default async function SalesPage() {
     </div>
     <section className="panel"><div className="panel-head"><h2>Nova venda</h2></div><div className="panel-body"><SaleForm products={(products ?? []) as never[]} customers={(customers ?? []) as never[]} /></div></section>
     <section className="panel section-gap"><div className="panel-head"><h2>Histórico de vendas</h2><span className="badge">{list.length}</span></div><div className="table-wrap"><table><thead><tr><th>Venda</th><th>Data</th><th>Cliente</th><th>Forma</th><th>Situação</th><th>Recebido</th><th>Total</th></tr></thead><tbody>
-      {list.map((s) => <tr key={s.id}><td><strong>#{s.sale_number}</strong></td><td>{dateBR(s.sold_at)}</td><td>{s.customers?.name ?? "Não identificado"}</td><td>{s.payment_method ?? "—"}</td><td><span className={`badge ${s.payment_status === "paid" ? "success" : "warning"}`}>{s.payment_status === "paid" ? "Pago" : s.payment_status === "partial" ? "Parcial" : "Pendente"}</span></td><td>{brl(s.amount_paid)}</td><td className="amount">{brl(s.total)}</td></tr>)}
+      {list.map((s) => <tr key={s.id}><td><strong>#{s.sale_number}</strong></td><td>{dateBR(s.sold_at)}</td><td>{relationOne(s.customers)?.name ?? "Não identificado"}</td><td>{s.payment_method ?? "—"}</td><td><span className={`badge ${s.payment_status === "paid" ? "success" : "warning"}`}>{s.payment_status === "paid" ? "Pago" : s.payment_status === "partial" ? "Parcial" : "Pendente"}</span></td><td>{brl(s.amount_paid)}</td><td className="amount">{brl(s.total)}</td></tr>)}
       {!list.length ? <tr><td colSpan={7} className="empty">Nenhuma venda registrada.</td></tr> : null}
     </tbody></table></div></section>
   </>;
