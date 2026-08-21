@@ -6,6 +6,7 @@ import "./module-shortcut.css";
 import "./performance.css";
 import "./purchases.css";
 import "./pwa.css";
+import "./mobile.css";
 import { PwaRegister } from "@/components/pwa-register";
 
 export const metadata: Metadata = {
