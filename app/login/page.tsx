@@ -8,9 +8,9 @@ export default function LoginPage() {
       <section className="login-hero">
         <span className="eyebrow">GESTÃO MULTILOJAS</span>
         <h2>Três empresas.<br />Uma visão organizada.</h2>
-        <p>Estoque, clientes, vendas, financeiro, fornecedores e devedores em um único sistema, com os dados de cada empresa separados.</p>
+        <p>Estoque, clientes, vendas, financeiro, fornecedores, compras e módulos específicos para cada negócio, com os dados totalmente separados.</p>
         <div className="company-pills">
-          <span>Sexy Shop</span><span>Loja de Celular</span><span>PetShop</span>
+          <span>Sedux</span><span>Schemmer Cell</span><span>House Pet</span>
         </div>
       </section>
       <LoginForm />
