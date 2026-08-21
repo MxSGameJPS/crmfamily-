@@ -1,6 +1,7 @@
 import { PageHeader } from "@/components/page-header";
 import { requireStoreUser } from "@/lib/auth";
 import { brl } from "@/lib/format";
+import { relationOne } from "@/lib/supabase/relation";
 import { createClient } from "@/lib/supabase/server";
 
 function saoPauloDateKey(value: Date) {
@@ -62,7 +63,7 @@ export default async function PerformancePage() {
 
   const customerMap = new Map<string, { name: string; purchases: number; total: number }>();
   for (const sale of list) {
-    const name = sale.customers?.name ?? "Não identificado";
+    const name = relationOne(sale.customers)?.name ?? "Não identificado";
     const current = customerMap.get(name) ?? { name, purchases: 0, total: 0 };
     current.purchases += 1;
     current.total += Number(sale.total);
@@ -72,7 +73,7 @@ export default async function PerformancePage() {
 
   const categoryMap = new Map<string, { name: string; revenue: number; profit: number }>();
   for (const item of items) {
-    const name = item.products?.category ?? (item.product_name.startsWith("KIT:") ? "Kits" : "Sem categoria");
+    const name = relationOne(item.products)?.category ?? (item.product_name.startsWith("KIT:") ? "Kits" : "Sem categoria");
     const current = categoryMap.get(name) ?? { name, revenue: 0, profit: 0 };
     current.revenue += Number(item.line_total);
     current.profit += Number(item.line_total) - Number(item.unit_cost) * Number(item.quantity);
