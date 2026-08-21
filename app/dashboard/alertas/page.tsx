@@ -5,12 +5,23 @@ import { getCompanyBrand } from "@/lib/company-brand";
 import { brl, dateBR } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
 
+function saoPauloDateKey(value = new Date()) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(value);
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return `${values.year}-${values.month}-${values.day}`;
+}
+
 export default async function AlertsPage() {
   const auth = await requireStoreUser();
   const supabase = await createClient();
   const { data: company } = await supabase.from("companies").select("name,slug").eq("id", auth.companyId!).single();
   const brand = getCompanyBrand(company?.slug, company?.name);
-  const today = new Date().toISOString().slice(0, 10);
+  const today = saoPauloDateKey();
 
   const [{ data: products }, { data: receivables }, { data: financial }] = await Promise.all([
     supabase.from("products").select("id,name,sku,stock_qty,min_stock").eq("is_active", true),
@@ -38,8 +49,8 @@ export default async function AlertsPage() {
   }
 
   if (brand.key === "housepet") {
-    const start = new Date(); start.setHours(0,0,0,0);
-    const end = new Date(); end.setHours(23,59,59,999);
+    const start = new Date(`${today}T00:00:00-03:00`);
+    const end = new Date(`${today}T23:59:59.999-03:00`);
     const { data: appointments } = await supabase.from("pet_appointments").select("id,service_type,scheduled_at,status,pets(name),customers(name,phone)").gte("scheduled_at", start.toISOString()).lte("scheduled_at", end.toISOString()).neq("status", "cancelled").order("scheduled_at");
     specializedCount = appointments?.length ?? 0;
     specialized = <section className="panel"><div className="panel-head"><h2>Agenda de hoje</h2><Link href="/dashboard/pets" className="secondary">Abrir agenda</Link></div><div className="table-wrap"><table><thead><tr><th>Hora</th><th>Pet</th><th>Tutor</th><th>Serviço</th><th>Status</th></tr></thead><tbody>
@@ -49,7 +60,7 @@ export default async function AlertsPage() {
   }
 
   if (brand.key === "sedux") {
-    const limit = new Date(); limit.setDate(limit.getDate() + 60);
+    const limit = new Date(`${today}T12:00:00-03:00`); limit.setDate(limit.getDate() + 60);
     const [{ data: batches }, { data: variants }] = await Promise.all([
       supabase.from("product_batches").select("id,expires_at,quantity,products(name)").lte("expires_at", limit.toISOString().slice(0,10)).order("expires_at"),
       supabase.from("product_variants").select("id,sku,stock_qty,min_stock,products(name)").eq("is_active", true),
