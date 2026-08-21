@@ -4,6 +4,7 @@ import "./stock-alert.css";
 import "./brand-specialized.css";
 import "./module-shortcut.css";
 import "./performance.css";
+import "./purchases.css";
 import { PwaRegister } from "@/components/pwa-register";
 
 export const metadata: Metadata = {
