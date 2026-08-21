@@ -113,12 +113,15 @@ export async function createPet(formData: FormData) {
 export async function createPetAppointment(formData: FormData) {
   const auth = await requireStoreUser();
   const supabase = await createClient();
+  const petId = text(formData, "pet_id");
+  const { data: pet, error: petError } = await supabase.from("pets").select("customer_id").eq("id", petId).single();
+  if (petError || !pet?.customer_id) throw new Error("Pet ou tutor não encontrado.");
   const scheduled = text(formData, "scheduled_at");
   const scheduledAt = scheduled ? new Date(`${scheduled}:00-03:00`).toISOString() : new Date().toISOString();
   const { data, error } = await supabase.from("pet_appointments").insert({
     company_id: auth.companyId,
-    pet_id: text(formData, "pet_id"),
-    customer_id: text(formData, "customer_id"),
+    pet_id: petId,
+    customer_id: pet.customer_id,
     service_type: text(formData, "service_type"),
     scheduled_at: scheduledAt,
     price: Math.max(0, numberValue(formData, "price")),
