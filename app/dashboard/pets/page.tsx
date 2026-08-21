@@ -19,15 +19,24 @@ function dateTimeBR(value: string) {
   return new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short", timeZone: "America/Sao_Paulo" }).format(new Date(value));
 }
 
+function saoPauloDateKey(value = new Date()) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(value);
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return `${values.year}-${values.month}-${values.day}`;
+}
+
 export default async function PetsPage() {
   const auth = await requireStoreUser();
   const supabase = await createClient();
   const { data: company } = await supabase.from("companies").select("name,slug").eq("id", auth.companyId!).single();
   if (getCompanyBrand(company?.slug, company?.name).key !== "housepet") redirect("/dashboard");
 
-  const now = new Date();
-  const todayStart = new Date(now); todayStart.setHours(0,0,0,0);
-  const todayEnd = new Date(now); todayEnd.setHours(23,59,59,999);
+  const todayKey = saoPauloDateKey();
 
   const [{ data: customers }, { data: pets }, { data: appointments }] = await Promise.all([
     supabase.from("customers").select("id,name,phone").eq("is_active", true).order("name"),
@@ -35,10 +44,7 @@ export default async function PetsPage() {
     supabase.from("pet_appointments").select("id,service_type,scheduled_at,status,price,responsible,service_notes,pets(name,species),customers(name,phone)").order("scheduled_at", { ascending: true }).limit(200),
   ]);
 
-  const today = (appointments ?? []).filter((a) => {
-    const d = new Date(a.scheduled_at);
-    return d >= todayStart && d <= todayEnd && a.status !== "cancelled";
-  });
+  const today = (appointments ?? []).filter((a) => saoPauloDateKey(new Date(a.scheduled_at)) === todayKey && a.status !== "cancelled");
   const active = (appointments ?? []).filter((a) => !["delivered","cancelled"].includes(a.status));
 
   return <>
