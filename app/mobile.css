@@ -101,6 +101,7 @@
 
   .mobile-brand-copy {
     min-width: 0;
+    flex: 1;
     display: grid;
     gap: 1px;
   }
@@ -157,6 +158,11 @@
     padding-right: 42px;
   }
 
+  .side-brand > div {
+    flex: 1;
+    min-width: 0;
+  }
+
   .mobile-drawer-close {
     position: absolute;
     right: 0;
@@ -207,7 +213,7 @@
     padding-bottom: max(4px, env(safe-area-inset-bottom));
   }
 
-  .mobile-logout-button {
+  .side-user .mobile-logout-button {
     width: 100%;
     margin-top: 12px;
     border: 1px solid rgba(255,255,255,.16);
@@ -216,6 +222,7 @@
     border-radius: 10px;
     padding: 10px 12px;
     font-weight: 750;
+    text-decoration: none;
   }
 
   .content {
@@ -397,6 +404,19 @@
     scroll-snap-align: start;
   }
 
+  .module-shortcut {
+    min-width: 0;
+  }
+
+  .module-shortcut > div {
+    min-width: 0;
+  }
+
+  .module-shortcut p,
+  .module-shortcut strong {
+    overflow-wrap: anywhere;
+  }
+
   .login-shell {
     min-height: 100dvh;
     padding: calc(18px + env(safe-area-inset-top)) 0 calc(18px + env(safe-area-inset-bottom));
@@ -477,6 +497,7 @@
     align-items: center;
     gap: 10px;
     padding: 10px 12px;
+    border-left: 0 !important;
     border-bottom: 1px solid #edf0f4;
     font-size: .86rem;
     overflow-wrap: anywhere;
@@ -493,7 +514,7 @@
   }
 
   table.responsive-table td:first-child:not([colspan]) {
-    background: color-mix(in srgb, var(--bg) 68%, white 32%);
+    background: var(--bg);
     font-size: .92rem;
   }
 
@@ -559,6 +580,10 @@
 
   .company-card .metrics {
     grid-template-columns: 1fr 1fr;
+  }
+
+  .module-shortcut {
+    align-items: flex-start;
   }
 }
 
@@ -627,6 +652,13 @@
     width: 52px;
     height: 52px;
     border-radius: 12px;
+  }
+
+  .module-shortcut {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    padding: 14px;
+    gap: 10px;
   }
 
   .pwa-modal {
