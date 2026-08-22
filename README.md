@@ -1,8 +1,8 @@
 # CRM Family
 
-CRM multiempresa para **Sedux**, **Schemmer Cell** e **House Pet**, com uma base compartilhada, dados isolados por empresa e painel **SuperAdmin somente leitura** para os dados operacionais.
+CRM multiempresa para **Sedux**, **Schemmer Cell** e **House Pet**, com uma base compartilhada, dados isolados por empresa, painel **SuperAdmin** e uma **Frente de Caixa/PDV separada do CRM administrativo**.
 
-Cada loja possui identidade visual e recursos próprios, mas continua usando a mesma aplicação, autenticação e infraestrutura.
+Cada loja possui identidade visual e recursos próprios, mas continua usando a mesma aplicação, autenticação, banco e infraestrutura.
 
 ## O que esta versão cobre
 
@@ -18,127 +18,142 @@ Cada loja possui identidade visual e recursos próprios, mas continua usando a m
 - Compras com múltiplos produtos e reposição de estoque.
 - Central de alertas operacionais.
 - Lucro bruto estimado com custo histórico por item vendido.
-- Painel de desempenho dos últimos 30 dias com faturamento diário, ticket médio, margem, produtos mais vendidos, produtos mais lucrativos, melhores clientes e desempenho por categoria.
-- Auditoria das operações dos módulos novos.
+- Painel de desempenho dos últimos 30 dias.
+- Auditoria das operações.
 - Edição e arquivamento de produtos, clientes e fornecedores.
 
+### Frente de Caixa / PDV
+O PDV usa o mesmo backend e o mesmo banco do CRM, mas possui interface e autorização próprias em `/caixa`.
+
+- Perfil `cashier` entra diretamente no caixa e não acessa `/dashboard`.
+- Abertura e fechamento de caixa por operador.
+- Fundo inicial, valor esperado, valor contado e diferença de fechamento.
+- Sangria e suprimento com motivo e auditoria.
+- Busca rápida por nome, SKU, código de barras e IMEI.
+- Carrinho com quantidade, desconto e remoção.
+- Cliente opcional na venda à vista e obrigatório quando existir saldo pendente.
+- Pix, dinheiro, débito, crédito, transferência e outros.
+- Pagamento misto.
+- Cálculo de troco.
+- Venda parcial ou a prazo integrada a clientes devedores.
+- Baixa automática de estoque.
+- Lançamento automático no financeiro.
+- Custo histórico e lucro preservados nos itens vendidos.
+- Comprovante interno não fiscal otimizado para impressão de 80 mm.
+- Histórico de vendas do PDV.
+- Cancelamento/estorno auditado, com restauração de estoque e reversão financeira.
+- Estorno em dinheiro de venda pertencente a caixa anterior é registrado como saída no caixa atual.
+
+### Integração operacional da agenda com o caixa
+O operador de caixa não precisa entrar no CRM para consultar atendimentos gerados pela equipe administrativa.
+
+**House Pet**
+- A tela `/caixa/agenda` lê a mesma `pet_appointments` usada pelo CRM.
+- Exibe a agenda do dia, pet, tutor, horário, serviço, status e valor.
+- Quando o atendimento está `ready`, aparece **Receber no caixa**.
+- O serviço é carregado no carrinho e o tutor é selecionado automaticamente.
+- Ao receber, o atendimento é vinculado à venda e marcado como entregue.
+- Em cancelamento/estorno, o atendimento retorna para `ready`.
+
+**Schemmer Cell**
+- A agenda operacional do caixa exibe ordens de serviço `ready` aguardando retirada.
+- **Receber no caixa** carrega a OS no PDV com cliente, aparelho e orçamento.
+- Ao receber, a OS é marcada como entregue e vinculada à venda.
+- Em cancelamento/estorno, a OS volta para `ready`.
+
+**Sedux**
+- O PDV vende produtos, variações e kits.
+- A tela de agenda informa que não há agenda operacional configurada para esse negócio.
+
 ### Schemmer Cell
-- Tema visual azul/preto/branco baseado na identidade da empresa.
-- Módulo de Assistência Técnica.
-- Ordens de serviço com cliente, aparelho, IMEI, série, estado físico, defeito, acessórios, técnico, orçamento, peças, mão de obra e previsão.
-- Fluxo de status: recebido, análise, aguardando aprovação, aguardando peça, manutenção, pronto, entregue e cancelado.
-- Controle de garantia por ordem de serviço, com vencimento calculado a partir da entrega.
-- Controle individual de aparelhos por IMEI e número de série.
-- Valor de compra, valor de venda, cor e garantia por unidade.
-- Alertas de aparelhos prontos e ordens aguardando peça.
+- Tema visual azul/preto/branco.
+- Assistência técnica e ordens de serviço.
+- IMEI, série, estado físico, defeito, acessórios, técnico, orçamento, peças, mão de obra e previsão.
+- Fluxo de status da assistência.
+- Garantia por ordem de serviço.
+- Controle individual de aparelhos por IMEI/número de série.
+- Venda de aparelho individual pelo PDV com status de unidade `sold`.
 
 > Por segurança, senha de desbloqueio de aparelho não é armazenada em texto aberto pelo CRM.
 
 ### House Pet
-- Tema visual vermelho/vinho/branco baseado na identidade da empresa.
-- Cadastro de pets vinculados ao tutor.
-- Espécie, raça, sexo, nascimento, peso, castração, alergias, comportamento, medicamentos, foto e observações.
+- Tema visual vermelho/vinho/branco.
+- Pets vinculados ao tutor.
+- Dados clínico-operacionais básicos, foto e observações.
 - Agenda de banho, tosa e demais serviços.
-- Responsável pelo atendimento, valor e observações.
-- Fluxo de status: agendado, confirmado, em atendimento, pronto, entregue e cancelado.
-- Central de alertas com agenda do dia usando o horário de São Paulo.
-- Histórico de atendimentos preservado pela agenda.
+- Responsável, valor e observações.
+- Fluxo de status do atendimento.
+- Agenda do dia também disponível ao caixa sem liberar o CRM administrativo.
 
 ### Sedux
-- Tema visual preto/pink/magenta baseado na identidade da empresa.
-- Variações de produto por cor, tamanho, modelo, sabor e volume.
-- Estoque e estoque mínimo por variação.
-- Lotes e controle de validade.
-- Alerta de produtos próximos do vencimento.
+- Tema visual preto/pink/magenta.
+- Variações por cor, tamanho, modelo, sabor e volume.
+- Estoque mínimo por variação.
+- Lotes e validade.
 - Kits compostos por vários produtos.
-- Venda rápida de kit com baixa automática dos componentes.
-- Venda do kit integrada a vendas, estoque e financeiro.
+- Venda de produtos, variações e kits no PDV.
+- Kit baixa automaticamente os componentes do estoque.
 
 ### Compras e reposição
 - Pedido de compra por fornecedor.
-- Vários produtos no mesmo pedido, cada um com quantidade e custo unitário.
-- Documento/nota, data e situação de pagamento.
-- A mercadoria só altera estoque quando é efetivamente recebida.
-- Ao receber a compra, o sistema:
-  1. aumenta o estoque de todos os itens;
-  2. registra as movimentações;
-  3. atualiza o custo dos produtos;
-  4. marca a compra como recebida;
-  5. cria a saída correspondente no financeiro.
+- Vários produtos, quantidade e custo unitário.
+- Documento/nota, data e pagamento.
+- Estoque muda somente no recebimento da mercadoria.
+- Recebimento atualiza estoque, custo, movimentações e financeiro em uma transação.
 
 ### SuperAdmin
-- Visão consolidada das três empresas.
-- Faturamento, lucro bruto estimado, clientes, entradas, saídas, dívidas e estoque baixo.
-- Lista de faltas.
-- Relatórios CSV consolidados ou por empresa de:
-  - vendas;
-  - lucro bruto;
-  - clientes;
-  - financeiro;
-  - compras;
-  - fornecedores;
-  - estoque;
-  - lista de faltas;
-  - devedores;
-  - auditoria.
-- Criação de login para uma loja.
-- Geração segura de nova senha para os acessos das lojas.
-- **Sem permissão de inserir, editar ou apagar dados operacionais das lojas.** Essa regra está no RLS do Supabase, e não apenas na interface.
-
-## Fora deste escopo
-
-**PDV / Frente de Caixa não foi incluído nesta atualização.** Ele permanece separado para implementação comercial posterior.
+- Visão consolidada das empresas.
+- Relatórios e métricas.
+- Criação de acesso `store_admin`, `store_user` e `cashier`.
+- Geração segura de nova senha.
+- O perfil `cashier` é apresentado como **Operador de caixa — somente PDV**.
 
 ## Stack
 
 - Next.js 16.3 App Router
 - React 19.2
-- TypeScript
+- TypeScript (stack existente deste repositório)
+- CSS Modules nos novos componentes do PDV
 - Supabase Auth + PostgreSQL + Row Level Security
 - Vercel
 - Manifest PWA
 
 ## Atualizando um banco que já existe
 
-Depois de fazer pull desta versão, abra o **SQL Editor** do Supabase e execute uma vez:
+Execute no **SQL Editor** do Supabase, nesta ordem:
 
 ```text
 supabase/upgrade-2026-08-21.sql
+supabase/pdv-2026-08-22.sql
 ```
 
-Esse upgrade:
-- renomeia as empresas para Sedux, Schemmer Cell e House Pet;
-- cria as tabelas dos módulos especializados;
-- adiciona custo histórico aos itens vendidos;
-- cria compras, auditoria, kits, lotes e variações;
-- adiciona políticas RLS e permissões;
-- cria as funções transacionais de recebimento de compra e venda de kit.
+O segundo script:
+- adiciona o perfil `cashier`;
+- cria sessões e movimentos de caixa;
+- cria pagamentos por venda;
+- adiciona suporte a pagamento misto;
+- vincula vendas ao caixa;
+- cria componentes de estoque usados para reversão segura;
+- integra pet appointments, ordens de serviço e aparelhos ao PDV;
+- adiciona RPCs atômicas para abrir/fechar caixa, vender e cancelar/estornar;
+- restringe o perfil de caixa a dados operacionais, sem liberar financeiro completo, compras, fornecedores e auditoria administrativa.
 
 Depois rode:
 
 ```bash
 npm install
 npm run typecheck
-npm run dev
+npm run build
 ```
 
 ## Projeto novo
 
 Em um projeto Supabase novo:
 
-1. Execute primeiro:
-
-```text
-supabase/schema.sql
-```
-
-2. Em seguida execute:
-
-```text
-supabase/upgrade-2026-08-21.sql
-```
-
-3. Configure `.env.local`:
+1. `supabase/schema.sql`
+2. `supabase/upgrade-2026-08-21.sql`
+3. `supabase/pdv-2026-08-22.sql`
+4. Configure `.env.local`:
 
 ```env
 NEXT_PUBLIC_SUPABASE_URL=...
@@ -151,41 +166,61 @@ SUPERADMIN_NAME=...
 
 **Nunca** coloque `SUPABASE_SECRET_KEY` em variável `NEXT_PUBLIC_`.
 
-4. Crie o primeiro SuperAdmin:
+Crie o primeiro SuperAdmin:
 
 ```bash
 node --env-file=.env.local scripts/bootstrap-superadmin.mjs
 ```
 
-5. Rode:
+## Arquitetura do PDV
 
-```bash
-npm run dev
+A camada HTTP é fina e delega para o domínio `modules/pos`:
+
+```text
+app/api/pos/
+  sessions/route.ts
+  movements/route.ts
+  sales/route.ts
+  sales/[id]/cancel/route.ts
+
+modules/pos/
+  pos.types.ts
+  pos.validation.ts
+  pos.repository.ts
+  pos.service.ts
+
+components/POS/
+  POSLayout/
+  SessionControls/
+  Checkout/
+  Agenda/
+  History/
+  Receipt/
 ```
 
-O SuperAdmin poderá entrar no CRM e, na tela **Acessos das lojas**, criar os logins da Sedux, Schemmer Cell e House Pet.
+Fluxo da venda:
 
-## Fluxo de venda comum
+```text
+route -> validation -> service -> repository -> RPC PostgreSQL -> banco
+```
 
-A venda normal continua sendo criada em uma função transacional no PostgreSQL. Ao concluir uma venda, o sistema:
-
-1. cria a venda e seus itens;
-2. valida se existe estoque suficiente;
-3. baixa o estoque;
-4. grava a movimentação de estoque;
-5. lança no financeiro o valor efetivamente recebido;
-6. se houver valor pendente, cria automaticamente uma conta a receber para o cliente;
-7. o custo do produto é gravado no item vendido para permitir cálculo posterior de lucro bruto.
-
-Assim, estoque, vendas, financeiro, devedores e margem permanecem sincronizados.
+A RPC `create_pos_sale` valida todos os itens antes de realizar qualquer baixa. A criação da venda, itens, estoque, pagamentos, financeiro, dívida e vínculos especializados ocorre na mesma transação do PostgreSQL.
 
 ## Regra de acesso
 
-Cada usuário de loja recebe `role` e `company_id` em `app_metadata` do Supabase Auth. Isso é definido apenas pelo backend administrativo. O RLS usa essas informações para separar os dados.
+Cada usuário recebe `role` e `company_id` em `app_metadata` pelo backend administrativo.
 
-- `store_admin` / `store_user`: operam apenas a própria empresa.
-- `super_admin`: consulta todas as empresas, mas não possui políticas de escrita nas tabelas operacionais.
+- `store_admin`: CRM administrativo e PDV da própria empresa.
+- `store_user`: CRM operacional e PDV da própria empresa.
+- `cashier`: somente Frente de Caixa/PDV da própria empresa; acesso ao dashboard é redirecionado para `/caixa`.
+- `super_admin`: gestão consolidada e criação dos acessos.
+
+A separação não depende apenas do menu. O RLS e as RPCs validam empresa e perfil no servidor/banco.
 
 ## Segurança importante
 
-A chave secreta do Supabase é usada apenas em rotas de servidor para criar usuários e redefinir senhas. Ela nunca é enviada ao navegador. As páginas autenticadas são dinâmicas e o proxy mantém a sessão SSR conforme o padrão atual do Supabase/Next.js.
+- A chave secreta do Supabase fica somente no servidor.
+- O caixa não recebe acesso de leitura ao financeiro completo, contas a receber, fornecedores, compras, movimentos de estoque ou audit logs.
+- O caixa lê apenas os dados operacionais necessários ao balcão.
+- Toda venda, abertura, fechamento, sangria, suprimento e cancelamento/estorno relevante gera auditoria.
+- O comprovante do PDV é **interno e não fiscal**.
