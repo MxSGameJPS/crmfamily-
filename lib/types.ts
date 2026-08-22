@@ -1,4 +1,4 @@
-export type UserRole = "super_admin" | "store_admin" | "store_user";
+export type UserRole = "super_admin" | "store_admin" | "store_user" | "cashier";
 
 export type AuthContext = {
   id: string;
