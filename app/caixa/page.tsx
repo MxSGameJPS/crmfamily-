@@ -5,6 +5,11 @@ import { createClient } from "@/lib/supabase/server";
 import { createPosService } from "@/modules/pos/pos.service";
 import styles from "./caixa.module.css";
 
+type Preselection = {
+  sourceType: "pet_appointment" | "service_order";
+  sourceId: string;
+};
+
 export default async function CashierPage({
   searchParams,
 }: {
@@ -12,8 +17,14 @@ export default async function CashierPage({
 }) {
   const auth = await requireCashierUser();
   const params = await searchParams;
-  const sourceType = params.sourceType === "pet_appointment" || params.sourceType === "service_order" ? params.sourceType : null;
-  const preselect = sourceType && params.sourceId ? { sourceType, sourceId: params.sourceId } : null;
+  let preselect: Preselection | null = null;
+
+  if (params.sourceId && params.sourceType === "pet_appointment") {
+    preselect = { sourceType: "pet_appointment", sourceId: params.sourceId };
+  } else if (params.sourceId && params.sourceType === "service_order") {
+    preselect = { sourceType: "service_order", sourceId: params.sourceId };
+  }
+
   const supabase = await createClient();
   const service = createPosService(supabase, auth);
   const data = await service.loadHome(preselect);
