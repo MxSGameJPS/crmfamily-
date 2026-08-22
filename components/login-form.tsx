@@ -20,13 +20,14 @@ export function LoginForm() {
     const supabase = createClient();
     const result = await supabase.auth.signInWithPassword({ email, password });
 
-    if (result.error) {
+    if (result.error || !result.data.user) {
       setError("E-mail ou senha inválidos.");
       setLoading(false);
       return;
     }
 
-    router.replace("/dashboard");
+    const role = String(result.data.user.app_metadata?.role ?? "");
+    router.replace(role === "cashier" ? "/caixa" : "/dashboard");
     router.refresh();
   }
 
@@ -51,7 +52,7 @@ export function LoginForm() {
         {loading ? "Entrando..." : "Entrar"}
       </button>
       <PwaInstallButton mode="login" />
-      <p className="login-footnote">O sistema identifica automaticamente qual empresa este login pode acessar.</p>
+      <p className="login-footnote">O sistema identifica automaticamente qual empresa e qual ambiente este login pode acessar.</p>
     </form>
   );
 }

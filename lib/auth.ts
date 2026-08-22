@@ -14,7 +14,7 @@ export async function getAuthContext(): Promise<AuthContext | null> {
   const role = appMetadata.role as UserRole | undefined;
   const companyId = typeof appMetadata.company_id === "string" ? appMetadata.company_id : null;
 
-  if (!role || !["super_admin", "store_admin", "store_user"].includes(role)) return null;
+  if (!role || !["super_admin", "store_admin", "store_user", "cashier"].includes(role)) return null;
 
   return {
     id: String(claims.sub),
@@ -33,12 +33,20 @@ export async function requireUser() {
 
 export async function requireStoreUser() {
   const auth = await requireUser();
+  if (auth.role === "cashier") redirect("/caixa");
   if (auth.role === "super_admin" || !auth.companyId) redirect("/dashboard");
+  return auth;
+}
+
+export async function requireCashierUser() {
+  const auth = await requireUser();
+  if (auth.role === "super_admin" || !auth.companyId) redirect("/dashboard");
+  if (!["cashier", "store_admin", "store_user"].includes(auth.role)) redirect("/dashboard");
   return auth;
 }
 
 export async function requireSuperAdmin() {
   const auth = await requireUser();
-  if (auth.role !== "super_admin") redirect("/dashboard");
+  if (auth.role !== "super_admin") redirect(auth.role === "cashier" ? "/caixa" : "/dashboard");
   return auth;
 }

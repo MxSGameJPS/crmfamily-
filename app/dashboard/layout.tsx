@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { ResponsiveEnhancer } from "@/components/responsive-enhancer";
 import { Sidebar } from "@/components/sidebar";
 import { requireUser } from "@/lib/auth";
@@ -8,6 +9,8 @@ export const dynamic = "force-dynamic";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const auth = await requireUser();
+  if (auth.role === "cashier") redirect("/caixa");
+
   let companyName = "Todas as empresas";
   let companySlug: string | null = null;
 

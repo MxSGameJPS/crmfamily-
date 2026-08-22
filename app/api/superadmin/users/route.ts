@@ -3,9 +3,16 @@ import { NextResponse } from "next/server";
 import { requireSuperAdmin } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import type { UserRole } from "@/lib/types";
 
 function password() {
   return `${randomBytes(9).toString("base64url")}A1!`;
+}
+
+function storeRole(value: unknown): Extract<UserRole, "store_admin" | "store_user" | "cashier"> {
+  if (value === "cashier") return "cashier";
+  if (value === "store_user") return "store_user";
+  return "store_admin";
 }
 
 export async function POST(request: Request) {
@@ -15,7 +22,7 @@ export async function POST(request: Request) {
     const fullName = String(body.fullName || "").trim();
     const email = String(body.email || "").trim().toLowerCase();
     const companyId = String(body.companyId || "");
-    const role = body.role === "store_user" ? "store_user" : "store_admin";
+    const role = storeRole(body.role);
     if (!fullName || !email || !companyId) return NextResponse.json({ error: "Preencha nome, e-mail e empresa." }, { status: 400 });
 
     const caller = await createClient();
@@ -44,7 +51,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: profile.error.message }, { status: 400 });
     }
 
-    return NextResponse.json({ password: generatedPassword, email, companyName: company.data.name });
+    return NextResponse.json({ password: generatedPassword, email, companyName: company.data.name, role });
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "Erro inesperado" }, { status: 401 });
   }
