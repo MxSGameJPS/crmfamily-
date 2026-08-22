@@ -41,10 +41,16 @@ export function parseSessionPayload(value: unknown) {
   throw new Error("Ação de caixa inválida.");
 }
 
-export function parseCashMovementPayload(value: unknown) {
+export function parseCashMovementPayload(value: unknown): {
+  sessionId: string;
+  movementType: "supply" | "withdrawal";
+  amount: number;
+  description: string;
+} {
   const data = object(value);
-  const movementType = text(data.movementType, "o tipo de movimento", true);
-  if (movementType !== "supply" && movementType !== "withdrawal") throw new Error("Tipo de movimento inválido.");
+  const rawMovementType = text(data.movementType, "o tipo de movimento", true);
+  if (rawMovementType !== "supply" && rawMovementType !== "withdrawal") throw new Error("Tipo de movimento inválido.");
+  const movementType: "supply" | "withdrawal" = rawMovementType;
   return {
     sessionId: text(data.sessionId, "o caixa", true),
     movementType,
