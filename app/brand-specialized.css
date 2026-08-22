@@ -6,11 +6,15 @@
 
 .app-shell.theme-family,.app-shell.theme-schemmer,.app-shell.theme-sedux,.app-shell.theme-housepet { background:var(--bg); }
 .theme-schemmer .sidebar { background:linear-gradient(180deg,#041431 0%,#08255a 100%); }
-.theme-sedux .sidebar { background:linear-gradient(180deg,#100d0c 0%,#29101d 100%); }
+.theme-sedux .sidebar { background:linear-gradient(180deg,#050505 0%,#090909 24%,#720038 58%,#d6006f 100%); }
 .theme-housepet .sidebar { background:linear-gradient(180deg,#4d0505 0%,#781010 100%); }
 .theme-schemmer .side-brand > span { background:#2f87e8; color:white; box-shadow:0 0 20px rgba(47,135,232,.35); }
-.theme-sedux .side-brand > span { background:linear-gradient(135deg,#ef8d26,#d70b74); color:white; box-shadow:0 0 20px rgba(215,11,116,.30); }
+.theme-sedux .side-brand > span { background:#ff0a78; color:#090909; box-shadow:0 0 22px rgba(255,10,120,.42); }
 .theme-housepet .side-brand > span { background:#f12727; color:white; box-shadow:0 0 20px rgba(241,39,39,.30); }
+.theme-sedux .sidebar nav a:hover { background:rgba(0,0,0,.24); color:white; }
+.theme-sedux .sidebar nav a.active { background:#070707; color:white; box-shadow:inset 3px 0 0 #ff0a78; }
+.theme-sedux .sidebar nav a.active b { color:#ff0a78; }
+.theme-sedux .side-brand small,.theme-sedux .side-user small { color:#ffd0e6; }
 .theme-sedux .eyebrow { color:#d70b74; }
 .theme-schemmer .eyebrow { color:#277bd3; }
 .theme-housepet .eyebrow { color:#d71e1e; }
