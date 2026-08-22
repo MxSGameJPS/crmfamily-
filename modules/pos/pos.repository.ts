@@ -156,7 +156,7 @@ export function createPosRepository(supabase: DatabaseClient) {
           .eq("company_id", companyId)
           .eq("id", sourceId)
           .single();
-        return { type: sourceType as const, data: unwrap(result, "Agendamento não encontrado.") };
+        return { type: "pet_appointment" as const, data: unwrap(result, "Agendamento não encontrado.") };
       }
 
       const result = await supabase
@@ -165,7 +165,7 @@ export function createPosRepository(supabase: DatabaseClient) {
         .eq("company_id", companyId)
         .eq("id", sourceId)
         .single();
-      return { type: sourceType as const, data: unwrap(result, "Ordem de serviço não encontrada.") };
+      return { type: "service_order" as const, data: unwrap(result, "Ordem de serviço não encontrada.") };
     },
 
     async getReceipt(companyId: string, saleId: string) {
