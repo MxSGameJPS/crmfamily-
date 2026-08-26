@@ -16,7 +16,11 @@ as $$
 declare
   v_product_id uuid;
 begin
-  v_product_id := coalesce(new.product_id, old.product_id);
+  if tg_op = 'DELETE' then
+    v_product_id := old.product_id;
+  else
+    v_product_id := new.product_id;
+  end if;
 
   if v_product_id is not null then
     update public.products p
@@ -40,7 +44,11 @@ begin
     where p.id = old.product_id;
   end if;
 
-  return coalesce(new, old);
+  if tg_op = 'DELETE' then
+    return old;
+  end if;
+
+  return new;
 end;
 $$;
 
