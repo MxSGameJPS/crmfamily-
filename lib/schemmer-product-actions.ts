@@ -81,17 +81,20 @@ export async function createSchemmerProduct(formData: FormData) {
   const { auth, supabase } = await requireSchemmer();
   const usesVariants = text(formData, "stock_mode") === "variants";
   const variants = usesVariants ? parseVariants(formData) : [];
+  const baseSku = text(formData, "sku");
+  const name = text(formData, "name");
 
+  if (!baseSku) throw new Error("Informe o SKU base do produto.");
+  if (!name) throw new Error("Informe o nome do produto.");
   if (usesVariants && variants.length === 0) {
     throw new Error("Adicione pelo menos uma variação ao produto.");
   }
 
-  const baseSku = text(formData, "sku");
   const productPayload = {
     company_id: auth.companyId,
     sku: baseSku,
     barcode: optional(formData, "barcode"),
-    name: text(formData, "name"),
+    name,
     description: optional(formData, "description"),
     category: optional(formData, "category"),
     cost: Math.max(0, numberValue(formData, "cost")),
@@ -123,10 +126,11 @@ export async function createSchemmerProduct(formData: FormData) {
       const rows = variants.map((variant, index) => {
         const color = typeof variant.color === "string" ? variant.color.trim() : "";
         const model = typeof variant.model === "string" ? variant.model.trim() : "";
-        const label = color || model || `VAR-${index + 1}`;
-        const generatedSku = `${baseSku}-${safeSkuPart(label) || index + 1}`;
+        const label = safeSkuPart(color || model || "VAR");
+        const generatedSku = `${baseSku}-${label || "VAR"}-${index + 1}`;
         const providedSku = typeof variant.sku === "string" ? variant.sku.trim() : "";
-        const priceOverride = Number(variant.priceOverride);
+        const rawPriceOverride = variant.priceOverride;
+        const parsedPriceOverride = rawPriceOverride == null ? null : Number(rawPriceOverride);
 
         return {
           company_id: auth.companyId,
@@ -139,7 +143,7 @@ export async function createSchemmerProduct(formData: FormData) {
           volume: null,
           stock_qty: Math.max(0, Number(variant.stockQty) || 0),
           min_stock: Math.max(0, Number(variant.minStock) || 0),
-          price_override: Number.isFinite(priceOverride) && priceOverride >= 0 ? priceOverride : null,
+          price_override: parsedPriceOverride != null && Number.isFinite(parsedPriceOverride) && parsedPriceOverride >= 0 ? parsedPriceOverride : null,
         };
       });
 
