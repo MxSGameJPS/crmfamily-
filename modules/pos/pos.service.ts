@@ -14,14 +14,21 @@ import type {
 import { createClient } from "@/lib/supabase/server";
 
 type DatabaseClient = Awaited<ReturnType<typeof createClient>>;
-
 type Relation<T> = T | T[] | null;
 
 type ProductRow = { id: string; name: string; sku: string; barcode: string | null; price: number | string; stock_qty: number | string; category: string | null };
 type CustomerRow = { id: string; name: string; phone: string | null };
 type VariantRow = {
-  id: string; sku: string; color: string | null; size: string | null; model: string | null; flavor: string | null; volume: string | null;
-  stock_qty: number | string; price_override: number | string | null; products: Relation<{ id: string; name: string; price: number | string }>;
+  id: string;
+  sku: string;
+  color: string | null;
+  size: string | null;
+  model: string | null;
+  flavor: string | null;
+  volume: string | null;
+  stock_qty: number | string;
+  price_override: number | string | null;
+  products: Relation<{ id: string; name: string; price: number | string }>;
 };
 type BundleRow = { id: string; name: string; sku: string; price: number | string; description: string | null };
 type DeviceRow = { id: string; brand: string; model: string; imei: string | null; serial_number: string | null; color: string | null; sale_price: number | string; status: string };
@@ -29,16 +36,38 @@ type PaymentRow = { amount: number | string; payment_method: string; status: str
 type MovementRow = { amount: number | string; movement_type: string };
 type SessionSaleRow = { id: string; total: number | string; status: string };
 type HistoryRow = {
-  id: string; sale_number: number | string; sold_at: string; total: number | string; amount_paid: number | string;
-  payment_status: string; status: string; source: string; cash_session_id: string | null; customers: Relation<{ name: string }>;
+  id: string;
+  sale_number: number | string;
+  sold_at: string;
+  total: number | string;
+  amount_paid: number | string;
+  payment_status: string;
+  status: string;
+  source: string;
+  cash_session_id: string | null;
+  customers: Relation<{ name: string }>;
 };
 type PetAppointmentRow = {
-  id: string; service_type: string; scheduled_at: string; status: string; price: number | string; customer_id: string;
-  paid_sale_id: string | null; pets: Relation<{ name: string }>; customers: Relation<{ name: string; phone: string | null }>;
+  id: string;
+  service_type: string;
+  scheduled_at: string;
+  status: string;
+  price: number | string;
+  customer_id: string;
+  paid_sale_id: string | null;
+  pets: Relation<{ name: string }>;
+  customers: Relation<{ name: string; phone: string | null }>;
 };
 type ServiceOrderRow = {
-  id: string; order_number: number | string; device_brand: string; device_model: string; quote_amount: number | string; status: string;
-  customer_id: string | null; paid_sale_id: string | null; customers: Relation<{ name: string; phone: string | null }>;
+  id: string;
+  order_number: number | string;
+  device_brand: string;
+  device_model: string;
+  quote_amount: number | string;
+  status: string;
+  customer_id: string | null;
+  paid_sale_id: string | null;
+  customers: Relation<{ name: string; phone: string | null }>;
 };
 
 function saoPauloDateKey(value = new Date()) {
@@ -127,6 +156,25 @@ export function createPosService(supabase: DatabaseClient, auth: AuthContext) {
     return { company, brand, customers };
   }
 
+  function pushVariants(catalog: PosCatalogItem[], variantsRaw: unknown[]) {
+    for (const variant of variantsRaw as VariantRow[]) {
+      const product = relationOne(variant.products);
+      if (!product) continue;
+      const details = [variant.color, variant.size, variant.model, variant.flavor, variant.volume].filter(Boolean).join(" • ");
+      catalog.push({
+        key: `variant:${variant.id}`,
+        sourceType: "variant",
+        sourceId: variant.id,
+        name: `${product.name} — ${variant.color || variant.model || variant.sku}`,
+        subtitle: details || `Variação ${variant.sku}`,
+        sku: variant.sku,
+        barcode: null,
+        price: Number(variant.price_override ?? product.price),
+        stock: Number(variant.stock_qty),
+      });
+    }
+  }
+
   async function getCatalog(brandKey: string): Promise<PosCatalogItem[]> {
     const productsRaw = await repository.getProducts(companyId);
     const catalog: PosCatalogItem[] = (productsRaw as unknown as ProductRow[]).map((product) => ({
@@ -141,27 +189,13 @@ export function createPosService(supabase: DatabaseClient, auth: AuthContext) {
       stock: Number(product.stock_qty),
     }));
 
+    if (brandKey === "sedux" || brandKey === "schemmer") {
+      const variantsRaw = await repository.getVariants(companyId);
+      pushVariants(catalog, variantsRaw as unknown[]);
+    }
+
     if (brandKey === "sedux") {
-      const [variantsRaw, bundlesRaw] = await Promise.all([
-        repository.getVariants(companyId),
-        repository.getBundles(companyId),
-      ]);
-      for (const variant of variantsRaw as unknown as VariantRow[]) {
-        const product = relationOne(variant.products);
-        if (!product) continue;
-        const details = [variant.color, variant.size, variant.model, variant.flavor, variant.volume].filter(Boolean).join(" • ");
-        catalog.push({
-          key: `variant:${variant.id}`,
-          sourceType: "variant",
-          sourceId: variant.id,
-          name: `${product.name} — ${variant.sku}`,
-          subtitle: details || "Variação",
-          sku: variant.sku,
-          barcode: null,
-          price: Number(variant.price_override ?? product.price),
-          stock: Number(variant.stock_qty),
-        });
-      }
+      const bundlesRaw = await repository.getBundles(companyId);
       for (const bundle of bundlesRaw as unknown as BundleRow[]) {
         catalog.push({
           key: `bundle:${bundle.id}`,
@@ -323,12 +357,21 @@ export function createPosService(supabase: DatabaseClient, auth: AuthContext) {
     const [company, receipt] = await Promise.all([repository.getCompany(companyId), repository.getReceipt(companyId, saleId)]);
     const brand = getCompanyBrand(company.slug, company.name);
     type ReceiptSaleRow = {
-      id: string; sale_number: number | string; sold_at: string; subtotal: number | string; discount: number | string;
-      total: number | string; amount_paid: number | string; payment_status: string; status: string; customers: Relation<{ name: string }>;
+      id: string;
+      sale_number: number | string;
+      sold_at: string;
+      subtotal: number | string;
+      discount: number | string;
+      total: number | string;
+      amount_paid: number | string;
+      payment_status: string;
+      status: string;
+      customers: Relation<{ name: string }>;
     };
     type ReceiptItemRow = { id: string; product_name: string; quantity: number | string; unit_price: number | string; line_total: number | string };
     type ReceiptPaymentRow = { id: string; payment_method: PosPaymentMethod; amount: number | string; status: string };
     const sale = receipt.sale as unknown as ReceiptSaleRow;
+
     return {
       companyName: company.name,
       companyLabel: brand.businessLabel,
