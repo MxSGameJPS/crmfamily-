@@ -1,8 +1,16 @@
-import { redirect } from "next/navigation";
+import { ReceiptDecision } from "@/components/POS/ReceiptDecision/receiptDecision";
 import { requireCashierUser } from "@/lib/auth";
+import { createClient } from "@/lib/supabase/server";
+import { createPosService } from "@/modules/pos/pos.service";
 
-export default async function CashierReceiptRedirect({ params }: { params: Promise<{ id: string }> }) {
-  await requireCashierUser();
+export const dynamic = "force-dynamic";
+
+export default async function CashierReceiptDecisionPage({ params }: { params: Promise<{ id: string }> }) {
+  const auth = await requireCashierUser();
   const { id } = await params;
-  redirect(`/comprovante/caixa/${id}`);
+  const supabase = await createClient();
+  const service = createPosService(supabase, auth);
+  const receipt = await service.loadReceipt(id);
+
+  return <ReceiptDecision receipt={receipt} />;
 }
