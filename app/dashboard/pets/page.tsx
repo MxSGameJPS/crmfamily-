@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { PageHeader } from "@/components/page-header";
+import { AppointmentEditPanel } from "@/components/Pets/AppointmentEditPanel/appointmentEditPanel";
 import { PetEditPanel } from "@/components/Pets/PetEditPanel/petEditPanel";
 import { PetStatusFilter } from "@/components/Pets/PetStatusFilter/petStatusFilter";
 import { requireStoreUser } from "@/lib/auth";
@@ -54,12 +55,18 @@ export default async function PetsPage({
   const [{ data: customers }, { data: pets }, { data: appointments }] = await Promise.all([
     supabase.from("customers").select("id,name,phone").eq("is_active", true).order("name"),
     supabase.from("pets").select("id,name,species,breed,sex,birth_date,weight,neutered,allergies,behavior_notes,medications,photo_url,notes,is_active,customers(id,name,phone)").order("name"),
-    supabase.from("pet_appointments").select("id,service_type,scheduled_at,status,price,responsible,service_notes,pets(name,species),customers(name,phone)").order("scheduled_at", { ascending: true }).limit(200),
+    supabase.from("pet_appointments").select("id,pet_id,service_type,scheduled_at,status,price,responsible,service_notes,pets(name,species),customers(name,phone)").order("scheduled_at", { ascending: true }).limit(200),
   ]);
 
   const activePets = pets?.filter((pet) => pet.is_active) ?? [];
   const archivedPets = pets?.filter((pet) => !pet.is_active) ?? [];
   const visiblePets = petFilter === "arquivados" ? archivedPets : petFilter === "todos" ? (pets ?? []) : activePets;
+  const appointmentPets = (pets ?? []).map((pet) => ({
+    id: pet.id,
+    name: pet.name,
+    tutorName: relationOne(pet.customers)?.name,
+    isActive: pet.is_active,
+  }));
 
   const today = (appointments ?? []).filter((a) => saoPauloDateKey(new Date(a.scheduled_at)) === todayKey && a.status !== "cancelled");
   const active = (appointments ?? []).filter((a) => !["delivered","cancelled"].includes(a.status));
@@ -108,7 +115,7 @@ export default async function PetsPage({
     </div>
 
     <section className="panel section-gap"><div className="panel-head"><h2>Agenda</h2><span className="badge">{appointments?.length ?? 0}</span></div><div className="table-wrap"><table><thead><tr><th>Data</th><th>Pet</th><th>Tutor</th><th>Serviço</th><th>Responsável</th><th>Valor</th><th>Status</th><th>Atualizar</th></tr></thead><tbody>
-      {appointments?.map((a) => <tr key={a.id} className={a.status === "ready" ? "highlight-row" : ""}><td><strong>{dateTimeBR(a.scheduled_at)}</strong></td><td>{relationOne(a.pets)?.name ?? "—"}</td><td>{relationOne(a.customers)?.name ?? "—"}</td><td>{a.service_type}</td><td>{a.responsible ?? "—"}</td><td className="amount">{brl(a.price)}</td><td><span className={`badge ${a.status === "delivered" ? "success" : a.status === "cancelled" ? "danger" : "warning"}`}>{statusLabel[a.status] ?? a.status}</span></td><td><form action={updatePetAppointmentStatus} className="inline-form"><input type="hidden" name="id" value={a.id}/><select name="status" defaultValue={a.status}>{Object.entries(statusLabel).map(([value,label]) => <option key={value} value={value}>{label}</option>)}</select><button className="secondary">Salvar</button></form></td></tr>)}
+      {appointments?.map((a) => <tr key={a.id} className={a.status === "ready" ? "highlight-row" : ""}><td><strong>{dateTimeBR(a.scheduled_at)}</strong></td><td>{relationOne(a.pets)?.name ?? "—"}</td><td>{relationOne(a.customers)?.name ?? "—"}</td><td>{a.service_type}</td><td>{a.responsible ?? "—"}</td><td className="amount">{brl(a.price)}</td><td><span className={`badge ${a.status === "delivered" ? "success" : a.status === "cancelled" ? "danger" : "warning"}`}>{statusLabel[a.status] ?? a.status}</span></td><td><div className="appointment-actions"><AppointmentEditPanel appointment={{ id: a.id, petId: a.pet_id, serviceType: a.service_type, scheduledAt: a.scheduled_at, status: a.status, price: a.price, responsible: a.responsible, serviceNotes: a.service_notes }} pets={appointmentPets} /><form action={updatePetAppointmentStatus} className="inline-form"><input type="hidden" name="id" value={a.id}/><select name="status" defaultValue={a.status}>{Object.entries(statusLabel).map(([value,label]) => <option key={value} value={value}>{label}</option>)}</select><button className="secondary">Salvar status</button></form></div></td></tr>)}
       {!appointments?.length ? <tr><td colSpan={8} className="empty">Nenhum agendamento cadastrado.</td></tr> : null}
     </tbody></table></div></section>
 
