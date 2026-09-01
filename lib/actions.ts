@@ -147,15 +147,40 @@ export async function createFinancialTransaction(formData: FormData) {
 }
 
 export async function markFinancialPaid(formData: FormData) {
+  const auth = await requireStoreUser();
+  const supabase = await createClient();
+  const id = text(formData, "id");
+  const { data: before } = await supabase.from("financial_transactions").select("status,paid_at").eq("id", id).eq("company_id", auth.companyId!).single();
+  if (!before) return { ok: false, error: "Movimentação não encontrada nesta empresa." };
+  const { error } = await supabase.from("financial_transactions").update({ status: "paid", paid_at: new Date().toISOString() }).eq("id", id).eq("company_id", auth.companyId!);
+  if (error) return { ok: false, error: error.message };
+  await supabase.from("audit_logs").insert({ company_id: auth.companyId, user_id: auth.id, action: "update", entity_type: "financial_transaction", entity_id: id, details: { operation: "mark_paid", before } });
+  revalidatePath("/dashboard"); revalidatePath("/dashboard/financeiro");
+  return { ok: true };
+}
+
+export async function updateFinancialTransaction(formData: FormData) {
   await requireStoreUser();
   const supabase = await createClient();
-  const { error } = await supabase
-    .from("financial_transactions")
-    .update({ status: "paid", paid_at: new Date().toISOString() })
-    .eq("id", text(formData, "id"));
-  if (error) throw new Error(error.message);
-  revalidatePath("/dashboard");
-  revalidatePath("/dashboard/financeiro");
+  const amount = number(formData, "amount");
+  if (amount <= 0) return { ok: false, error: "O valor deve ser maior que zero." };
+  const result = await supabase.rpc("update_financial_transaction", {
+    p_id: text(formData, "id"), p_transaction_date: text(formData, "transaction_date"),
+    p_transaction_type: text(formData, "transaction_type"), p_category: text(formData, "category"),
+    p_description: text(formData, "description"), p_status: text(formData, "status"), p_amount: amount,
+  });
+  if (result.error) return { ok: false, error: result.error.message };
+  revalidatePath("/dashboard"); revalidatePath("/dashboard/financeiro"); revalidatePath("/dashboard/alertas");
+  return { ok: true };
+}
+
+export async function deleteFinancialTransaction(formData: FormData) {
+  await requireStoreUser();
+  const supabase = await createClient();
+  const result = await supabase.rpc("delete_financial_transaction", { p_id: text(formData, "id") });
+  if (result.error) return { ok: false, error: result.error.message };
+  revalidatePath("/dashboard"); revalidatePath("/dashboard/financeiro"); revalidatePath("/dashboard/alertas");
+  return { ok: true };
 }
 
 export async function createReceivable(formData: FormData) {
