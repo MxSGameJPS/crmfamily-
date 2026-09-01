@@ -6,7 +6,7 @@ Cada loja possui identidade visual e recursos próprios, mas continua usando a m
 
 ## O que esta versão cobre
 
-### Recursos comuns às três empresa
+### Recursos comuns às três empresas
 - Login com Supabase Auth.
 - Isolamento por empresa no banco com Row Level Security (RLS).
 - Produtos e estoque, estoque mínimo e histórico de movimentação.
