@@ -1,47 +1,8 @@
--- CRM Family - gestão segura de movimentações financeiras - 2026-08-27
--- Execute depois de supabase/pdv-crm-sync-2026-08-26.sql.
+-- CRM Family - liberar ações em movimentações financeiras - 2026-09-01
+-- Execute depois de supabase/finance-management-2026-08-27.sql.
+-- Permite editar e excluir movimentações financeiras de qualquer origem pela tela /dashboard/financeiro.
 
-alter table public.financial_transactions
-  add column if not exists source_type text not null default 'manual';
-
-alter table public.financial_transactions drop constraint if exists financial_transactions_source_type_check;
-alter table public.financial_transactions add constraint financial_transactions_source_type_check
-  check (source_type in ('manual','sale','pos','purchase'));
-
-update public.financial_transactions
-set source_type = case
-  when cash_session_id is not null then 'pos'
-  when sale_id is not null then 'sale'
-  when category = 'Compras' and description like 'Compra de mercadorias #%' then 'purchase'
-  else 'manual'
-end;
-
-create or replace function public.protect_financial_source()
-returns trigger
-language plpgsql
-security invoker
-set search_path = ''
-as $$
-begin
-  if tg_op = 'UPDATE' then
-    new.source_type := old.source_type;
-  else
-    new.source_type := case
-      when new.cash_session_id is not null then 'pos'
-      when new.sale_id is not null then 'sale'
-      when new.category = 'Compras' and new.description like 'Compra de mercadorias #%' then 'purchase'
-      else 'manual'
-    end;
-  end if;
-  return new;
-end;
-$$;
-
-drop trigger if exists financial_transactions_source on public.financial_transactions;
-create trigger financial_transactions_source
-before insert or update on public.financial_transactions
-for each row execute function public.protect_financial_source();
-
+-- Remove a assinatura antiga sem vencimento, caso exista.
 drop function if exists public.update_financial_transaction(uuid,date,text,text,text,text,numeric);
 
 create or replace function public.update_financial_transaction(
@@ -121,7 +82,20 @@ begin
 
   insert into public.audit_logs(company_id,user_id,action,entity_type,entity_id,details)
   values(v_company_id,auth.uid(),'delete','financial_transaction',p_id,
-    jsonb_build_object('deleted',jsonb_build_object('date',v_row.created_at,'type',v_row.transaction_type,'category',v_row.category,'description',v_row.description,'status',v_row.status,'amount',v_row.amount)));
+    jsonb_build_object(
+      'deleted',jsonb_build_object(
+        'date',v_row.created_at,
+        'type',v_row.transaction_type,
+        'category',v_row.category,
+        'description',v_row.description,
+        'status',v_row.status,
+        'amount',v_row.amount,
+        'source_type',v_row.source_type,
+        'sale_id',v_row.sale_id,
+        'supplier_id',v_row.supplier_id,
+        'cash_session_id',v_row.cash_session_id
+      )
+    ));
 
   delete from public.financial_transactions where id = p_id and company_id = v_company_id;
 end;
