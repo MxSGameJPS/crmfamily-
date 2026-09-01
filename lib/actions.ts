@@ -21,6 +21,16 @@ function number(formData: FormData, key: string, fallback = 0) {
 
 export async function createProduct(formData: FormData) {
   const auth = await requireStoreUser();
+  if (!auth.companyId) throw new Error("Empresa não identificada.");
+
+  const sku = text(formData, "sku");
+  const name = text(formData, "name");
+  const price = number(formData, "price");
+
+  if (!sku) throw new Error("Informe o SKU do produto.");
+  if (!name) throw new Error("Informe o nome do produto.");
+  if (price < 0) throw new Error("Preço de venda inválido.");
+
   const supabase = await createClient();
   const initialStock = Math.max(0, number(formData, "stock_qty"));
 
@@ -28,20 +38,20 @@ export async function createProduct(formData: FormData) {
     .from("products")
     .insert({
       company_id: auth.companyId,
-      sku: text(formData, "sku"),
+      sku,
       barcode: optional(formData, "barcode"),
-      name: text(formData, "name"),
+      name,
       description: optional(formData, "description"),
       category: optional(formData, "category"),
       cost: Math.max(0, number(formData, "cost")),
-      price: Math.max(0, number(formData, "price")),
+      price: Math.max(0, price),
       stock_qty: 0,
       min_stock: Math.max(0, number(formData, "min_stock")),
     })
     .select("id")
     .single();
 
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(error.message.includes("duplicate") ? "Já existe um produto com este SKU nesta empresa." : error.message);
 
   if (initialStock > 0 && data?.id) {
     const stockResult = await supabase.rpc("adjust_stock", {
