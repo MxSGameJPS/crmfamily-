@@ -9,6 +9,7 @@ import styles from "./productsTable.module.css";
 export type ProductRow = {
   id: string;
   sku: string;
+  barcode?: string | null;
   name: string;
   category?: string | null;
   cost?: number | null;
@@ -50,8 +51,9 @@ export function ProductsTable({ products, variants }: ProductsTableProps) {
     const q = searchQuery.toLowerCase().trim();
     const nameMatch = (product.name ?? "").toLowerCase().includes(q);
     const skuMatch = (product.sku ?? "").toLowerCase().includes(q);
+    const barcodeMatch = (product.barcode ?? "").toLowerCase().includes(q);
     const categoryMatch = (product.category ?? "").toLowerCase().includes(q);
-    return nameMatch || skuMatch || categoryMatch;
+    return nameMatch || skuMatch || barcodeMatch || categoryMatch;
   });
 
   const handleDeleteSubmit = (e: React.FormEvent<HTMLFormElement>, productName: string) => {
@@ -98,7 +100,7 @@ export function ProductsTable({ products, variants }: ProductsTableProps) {
           <input
             type="text"
             className={styles.searchInput}
-            placeholder="Filtrar por nome do produto, SKU ou categoria..."
+            placeholder="Filtrar por nome, SKU, código de barras ou categoria..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
