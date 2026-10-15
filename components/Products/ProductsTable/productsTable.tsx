@@ -10,6 +10,7 @@ export type ProductRow = {
   id: string;
   sku: string;
   barcode?: string | null;
+  product_code?: string | null;
   name: string;
   category?: string | null;
   cost?: number | null;
@@ -29,9 +30,10 @@ export type ProductVariantRow = {
 type ProductsTableProps = {
   products: ProductRow[];
   variants: ProductVariantRow[];
+  showProductCode?: boolean;
 };
 
-export function ProductsTable({ products, variants }: ProductsTableProps) {
+export function ProductsTable({ products, variants, showProductCode = false }: ProductsTableProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"ativos" | "arquivados" | "todos">("ativos");
 
@@ -52,8 +54,9 @@ export function ProductsTable({ products, variants }: ProductsTableProps) {
     const nameMatch = (product.name ?? "").toLowerCase().includes(q);
     const skuMatch = (product.sku ?? "").toLowerCase().includes(q);
     const barcodeMatch = (product.barcode ?? "").toLowerCase().includes(q);
+    const productCodeMatch = (product.product_code ?? "").toLowerCase().includes(q);
     const categoryMatch = (product.category ?? "").toLowerCase().includes(q);
-    return nameMatch || skuMatch || barcodeMatch || categoryMatch;
+    return nameMatch || skuMatch || barcodeMatch || productCodeMatch || categoryMatch;
   });
 
   const handleDeleteSubmit = (e: React.FormEvent<HTMLFormElement>, productName: string) => {
@@ -100,7 +103,9 @@ export function ProductsTable({ products, variants }: ProductsTableProps) {
           <input
             type="text"
             className={styles.searchInput}
-            placeholder="Filtrar por nome, SKU, código de barras ou categoria..."
+            placeholder={showProductCode
+              ? "Filtrar por nome, código do produto, SKU, código de barras ou categoria..."
+              : "Filtrar por nome, SKU, código de barras ou categoria..."}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -139,6 +144,7 @@ export function ProductsTable({ products, variants }: ProductsTableProps) {
           <thead>
             <tr>
               <th>Produto</th>
+              {showProductCode ? <th>Código</th> : null}
               <th>SKU</th>
               <th>Categoria</th>
               <th>Custo</th>
@@ -173,6 +179,7 @@ export function ProductsTable({ products, variants }: ProductsTableProps) {
                       <small className="stock-row-note">Reposição necessária</small>
                     ) : null}
                   </td>
+                  {showProductCode ? <td>{p.product_code ?? "—"}</td> : null}
                   <td>{p.sku}</td>
                   <td>{p.category ?? "—"}</td>
                   <td>{brl(p.cost)}</td>
@@ -223,7 +230,7 @@ export function ProductsTable({ products, variants }: ProductsTableProps) {
             })}
             {!filteredProducts.length ? (
               <tr>
-                <td colSpan={8} className="empty">
+                <td colSpan={showProductCode ? 9 : 8} className="empty">
                   {searchQuery ? `Nenhum produto encontrado para "${searchQuery}".` : "Nenhum produto cadastrado neste filtro."}
                 </td>
               </tr>
