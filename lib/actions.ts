@@ -40,6 +40,7 @@ export async function createProduct(formData: FormData) {
       company_id: auth.companyId,
       sku,
       barcode: optional(formData, "barcode"),
+      product_code: optional(formData, "product_code"),
       name,
       description: optional(formData, "description"),
       category: optional(formData, "category"),
@@ -51,7 +52,12 @@ export async function createProduct(formData: FormData) {
     .select("id")
     .single();
 
-  if (error) throw new Error(error.message.includes("duplicate") ? "Já existe um produto com este SKU nesta empresa." : error.message);
+  if (error) {
+    if (error.message.includes("products_company_product_code_uidx") || error.message.includes("product_code")) {
+      throw new Error("Já existe um produto com este código nesta empresa.");
+    }
+    throw new Error(error.message.includes("duplicate") ? "Já existe um produto com este SKU nesta empresa." : error.message);
+  }
 
   if (initialStock > 0 && data?.id) {
     const stockResult = await supabase.rpc("adjust_stock", {
@@ -259,6 +265,7 @@ export async function updateProduct(formData: FormData) {
   const { error } = await supabase.from("products").update({
     sku: text(formData, "sku"),
     barcode: optional(formData, "barcode"),
+    product_code: optional(formData, "product_code"),
     name: text(formData, "name"),
     description: optional(formData, "description"),
     category: optional(formData, "category"),
