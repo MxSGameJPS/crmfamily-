@@ -16,7 +16,7 @@ import { createClient } from "@/lib/supabase/server";
 type DatabaseClient = Awaited<ReturnType<typeof createClient>>;
 type Relation<T> = T | T[] | null;
 
-type ProductRow = { id: string; name: string; sku: string; barcode: string | null; price: number | string; stock_qty: number | string; category: string | null };
+type ProductRow = { id: string; name: string; sku: string; barcode: string | null; product_code: string | null; price: number | string; stock_qty: number | string; category: string | null };
 type CustomerRow = { id: string; name: string; phone: string | null };
 type VariantRow = {
   id: string;
@@ -98,9 +98,11 @@ function paymentLabel(method: PosPaymentMethod) {
   return labels[method];
 }
 
-export function createPosService(supabase: DatabaseClient, auth: AuthContext) {
+export function createPosService(supabase: DatabaseClient, auth: AuthContext, selectedCompanyId?: string) {
   const repository = createPosRepository(supabase);
-  const companyId = requireCompany(auth);
+  const authCompanyId = requireCompany(auth);
+  const companyId = selectedCompanyId ?? authCompanyId;
+  const crossCompany = companyId !== authCompanyId;
 
   async function getSessionSummary(): Promise<CashSessionSummary | null> {
     const session = await repository.getOpenSession(companyId, auth.id);
@@ -185,6 +187,7 @@ export function createPosService(supabase: DatabaseClient, auth: AuthContext) {
       subtitle: product.category || "Produto",
       sku: product.sku,
       barcode: product.barcode,
+      productCode: product.product_code,
       price: Number(product.price),
       stock: Number(product.stock_qty),
     }));
@@ -408,10 +411,23 @@ export function createPosService(supabase: DatabaseClient, auth: AuthContext) {
     loadReceipt,
     getSessionSummary,
     paymentLabel,
-    openSession: repository.openSession,
-    closeSession: repository.closeSession,
-    addMovement: repository.addMovement,
-    createSale: repository.createSale,
-    cancelSale: repository.cancelSale,
+    openSession: (openingAmount: number, notes: string | null) =>
+      crossCompany
+        ? repository.openHubSession(companyId, openingAmount, notes)
+        : repository.openSession(openingAmount, notes),
+    closeSession: (sessionId: string, closingAmount: number, notes: string | null) =>
+      crossCompany
+        ? repository.closeHubSession(companyId, sessionId, closingAmount, notes)
+        : repository.closeSession(sessionId, closingAmount, notes),
+    addMovement: (sessionId: string, movementType: "supply" | "withdrawal", amount: number, description: string) =>
+      crossCompany
+        ? repository.addHubMovement(companyId, sessionId, movementType, amount, description)
+        : repository.addMovement(sessionId, movementType, amount, description),
+    createSale: (input: Parameters<typeof repository.createSale>[0]) =>
+      crossCompany ? repository.createHubSale(companyId, input) : repository.createSale(input),
+    cancelSale: (saleId: string, reason: string, refundSessionId: string | null) =>
+      crossCompany
+        ? repository.cancelHubSale(companyId, saleId, reason, refundSessionId)
+        : repository.cancelSale(saleId, reason, refundSessionId),
   };
 }
