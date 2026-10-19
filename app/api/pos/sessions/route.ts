@@ -5,8 +5,10 @@ import { parseSessionPayload } from "@/modules/pos/pos.validation";
 
 export async function POST(request: Request) {
   try {
-    const input = parseSessionPayload(await request.json());
-    const { auth, supabase, selectedCompany } = await getPosHubContext();
+    const payload = await request.json() as Record<string, unknown>;
+    const input = parseSessionPayload(payload);
+    const preferredCompanyId = typeof payload.companyId === "string" ? payload.companyId : null;
+    const { auth, supabase, selectedCompany } = await getPosHubContext(preferredCompanyId);
     const service = createPosService(supabase, auth, selectedCompany.id);
 
     if (input.action === "open") {
