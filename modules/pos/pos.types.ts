@@ -17,6 +17,7 @@ export type PosCatalogItem = {
   subtitle: string;
   sku: string | null;
   barcode: string | null;
+  productCode?: string | null;
   price: number;
   stock: number;
   customerId?: string | null;
