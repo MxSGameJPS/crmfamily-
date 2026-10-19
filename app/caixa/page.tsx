@@ -1,7 +1,6 @@
 import { Checkout } from "@/components/POS/Checkout/checkout";
 import { SessionControls } from "@/components/POS/SessionControls/sessionControls";
-import { requireCashierUser } from "@/lib/auth";
-import { createClient } from "@/lib/supabase/server";
+import { getPosHubContext } from "@/lib/pos-hub";
 import { createPosService } from "@/modules/pos/pos.service";
 import styles from "./caixa.module.css";
 
@@ -15,7 +14,6 @@ export default async function CashierPage({
 }: {
   searchParams: Promise<{ sourceType?: string; sourceId?: string }>;
 }) {
-  const auth = await requireCashierUser();
   const params = await searchParams;
   let preselect: Preselection | null = null;
 
@@ -25,8 +23,8 @@ export default async function CashierPage({
     preselect = { sourceType: "service_order", sourceId: params.sourceId };
   }
 
-  const supabase = await createClient();
-  const service = createPosService(supabase, auth);
+  const { auth, supabase, selectedCompany } = await getPosHubContext();
+  const service = createPosService(supabase, auth, selectedCompany.id);
   const data = await service.loadHome(preselect);
 
   return (
@@ -37,12 +35,13 @@ export default async function CashierPage({
           catalog={data.catalog}
           customers={data.customers}
           sessionId={data.session.id}
+          companyId={selectedCompany.id}
           preselectedItem={data.preselectedItem}
         />
       ) : (
         <section className={styles.lockedNotice}>
           <strong>PDV protegido</strong>
-          <span>A venda rápida ficará disponível assim que o operador abrir o caixa.</span>
+          <span>A venda rápida ficará disponível assim que o operador abrir o caixa desta empresa.</span>
         </section>
       )}
     </div>
