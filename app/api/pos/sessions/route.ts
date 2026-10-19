@@ -1,15 +1,13 @@
 import { NextResponse } from "next/server";
-import { requireCashierUser } from "@/lib/auth";
-import { createClient } from "@/lib/supabase/server";
+import { getPosHubContext } from "@/lib/pos-hub";
 import { createPosService } from "@/modules/pos/pos.service";
 import { parseSessionPayload } from "@/modules/pos/pos.validation";
 
 export async function POST(request: Request) {
   try {
-    const auth = await requireCashierUser();
     const input = parseSessionPayload(await request.json());
-    const supabase = await createClient();
-    const service = createPosService(supabase, auth);
+    const { auth, supabase, selectedCompany } = await getPosHubContext();
+    const service = createPosService(supabase, auth, selectedCompany.id);
 
     if (input.action === "open") {
       const sessionId = await service.openSession(input.openingAmount, input.notes);
