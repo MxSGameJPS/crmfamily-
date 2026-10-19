@@ -57,7 +57,7 @@ export function createPosRepository(supabase: DatabaseClient) {
     async getProducts(companyId: string) {
       const { data, error } = await supabase
         .from("products")
-        .select("id,name,sku,barcode,price,stock_qty,category")
+        .select("id,name,sku,barcode,product_code,price,stock_qty,category")
         .eq("company_id", companyId)
         .eq("is_active", true)
         .gt("stock_qty", 0)
@@ -192,6 +192,15 @@ export function createPosRepository(supabase: DatabaseClient) {
       return unwrap(result, "Não foi possível abrir o caixa.");
     },
 
+    async openHubSession(companyId: string, openingAmount: number, notes: string | null) {
+      const result = await supabase.rpc("pos_hub_open_cash_session", {
+        p_company_id: companyId,
+        p_opening_amount: openingAmount,
+        p_notes: notes,
+      });
+      return unwrap(result, "Não foi possível abrir o caixa desta empresa.");
+    },
+
     async closeSession(sessionId: string, closingAmount: number, notes: string | null) {
       const result = await supabase.rpc("close_cash_session", {
         p_cash_session_id: sessionId,
@@ -199,6 +208,16 @@ export function createPosRepository(supabase: DatabaseClient) {
         p_notes: notes,
       });
       return unwrap(result, "Não foi possível fechar o caixa.");
+    },
+
+    async closeHubSession(companyId: string, sessionId: string, closingAmount: number, notes: string | null) {
+      const result = await supabase.rpc("pos_hub_close_cash_session", {
+        p_company_id: companyId,
+        p_cash_session_id: sessionId,
+        p_closing_amount: closingAmount,
+        p_notes: notes,
+      });
+      return unwrap(result, "Não foi possível fechar o caixa desta empresa.");
     },
 
     async addMovement(sessionId: string, movementType: "supply" | "withdrawal", amount: number, description: string) {
@@ -209,6 +228,17 @@ export function createPosRepository(supabase: DatabaseClient) {
         p_description: description,
       });
       return unwrap(result, "Não foi possível registrar o movimento.");
+    },
+
+    async addHubMovement(companyId: string, sessionId: string, movementType: "supply" | "withdrawal", amount: number, description: string) {
+      const result = await supabase.rpc("pos_hub_add_cash_movement", {
+        p_company_id: companyId,
+        p_cash_session_id: sessionId,
+        p_movement_type: movementType,
+        p_amount: amount,
+        p_description: description,
+      });
+      return unwrap(result, "Não foi possível registrar o movimento desta empresa.");
     },
 
     async createSale(input: {
@@ -238,8 +268,46 @@ export function createPosRepository(supabase: DatabaseClient) {
       return unwrap(result, "Não foi possível concluir a venda.");
     },
 
+    async createHubSale(companyId: string, input: {
+      sessionId: string;
+      customerId: string | null;
+      discount: number;
+      dueDate: string | null;
+      items: Array<{
+        source_type: string;
+        source_id: string | null;
+        quantity: number;
+        service_name?: string;
+        service_description?: string | null;
+        unit_price?: number;
+        unit_cost?: number;
+      }>;
+      payments: Array<{ payment_method: string; amount: number }>;
+    }) {
+      const result = await supabase.rpc("pos_hub_create_sale", {
+        p_company_id: companyId,
+        p_cash_session_id: input.sessionId,
+        p_customer_id: input.customerId,
+        p_discount: input.discount,
+        p_due_date: input.dueDate,
+        p_items: input.items,
+        p_payments: input.payments,
+      });
+      return unwrap(result, "Não foi possível concluir a venda desta empresa.");
+    },
+
     async cancelSale(saleId: string, reason: string, refundSessionId: string | null) {
       const { error } = await supabase.rpc("cancel_pos_sale", {
+        p_sale_id: saleId,
+        p_reason: reason,
+        p_refund_session_id: refundSessionId,
+      });
+      if (error) throw new Error(error.message);
+    },
+
+    async cancelHubSale(companyId: string, saleId: string, reason: string, refundSessionId: string | null) {
+      const { error } = await supabase.rpc("pos_hub_cancel_sale", {
+        p_company_id: companyId,
         p_sale_id: saleId,
         p_reason: reason,
         p_refund_session_id: refundSessionId,
