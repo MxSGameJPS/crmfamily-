@@ -249,6 +249,7 @@ export function Checkout({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           sessionId,
+          companyId,
           customerId: customerId || null,
           discount,
           dueDate: dueDate || null,
