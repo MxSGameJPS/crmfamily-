@@ -29,7 +29,7 @@ export default async function CashierPage({
 
   return (
     <div className={styles.page}>
-      <SessionControls session={data.session} />
+      <SessionControls session={data.session} companyId={selectedCompany.id} />
       {data.session ? (
         <Checkout
           catalog={data.catalog}
