@@ -70,11 +70,13 @@ export function Checkout({
   catalog,
   customers,
   sessionId,
+  companyId,
   preselectedItem,
 }: {
   catalog: PosCatalogItem[];
   customers: PosCustomer[];
   sessionId: string;
+  companyId: string;
   preselectedItem?: PosCatalogItem | null;
 }) {
   const router = useRouter();
@@ -104,7 +106,7 @@ export function Checkout({
     const normalized = query.trim().toLocaleLowerCase("pt-BR");
     if (!normalized) return catalog.slice(0, 18);
     return catalog.filter((item) => {
-      const haystack = [item.name, item.subtitle, item.sku, item.barcode].filter(Boolean).join(" ").toLocaleLowerCase("pt-BR");
+      const haystack = [item.name, item.subtitle, item.productCode, item.sku, item.barcode].filter(Boolean).join(" ").toLocaleLowerCase("pt-BR");
       return haystack.includes(normalized);
     }).slice(0, 24);
   }, [catalog, query]);
@@ -171,7 +173,11 @@ export function Checkout({
   function exactSearch() {
     const value = query.trim().toLocaleLowerCase("pt-BR");
     if (!value) return;
-    const exact = catalog.find((item) => item.barcode?.toLocaleLowerCase("pt-BR") === value || item.sku?.toLocaleLowerCase("pt-BR") === value);
+    const exact = catalog.find((item) =>
+      item.productCode?.toLocaleLowerCase("pt-BR") === value ||
+      item.barcode?.toLocaleLowerCase("pt-BR") === value ||
+      item.sku?.toLocaleLowerCase("pt-BR") === value
+    );
     if (exact) {
       addItem(exact);
       setQuery("");
@@ -279,7 +285,7 @@ export function Checkout({
       setServiceModalOpen(false);
       router.refresh();
 
-      if (saleId) window.open(`/caixa/comprovante/${saleId}`, "_blank", "noopener,noreferrer");
+      if (saleId) window.open(`/caixa/comprovante/${saleId}?companyId=${encodeURIComponent(companyId)}`, "_blank", "noopener,noreferrer");
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Erro inesperado ao concluir a venda.");
     } finally {
@@ -311,7 +317,7 @@ export function Checkout({
                 exactSearch();
               }
             }}
-            placeholder="Buscar por produto, SKU, código de barras ou IMEI..."
+            placeholder="Buscar por produto, código, SKU, código de barras ou IMEI..."
             autoFocus
             inputMode="search"
           />
@@ -443,7 +449,7 @@ export function Checkout({
         ) : null}
 
         {error ? <p className={styles.error}>{error}</p> : null}
-        {success ? <p className={styles.success}>{success.message} <Link href={`/caixa/comprovante/${success.saleId}`} target="_blank">Abrir comprovante</Link></p> : null}
+        {success ? <p className={styles.success}>{success.message} <Link href={`/caixa/comprovante/${success.saleId}?companyId=${encodeURIComponent(companyId)}`} target="_blank">Abrir comprovante</Link></p> : null}
 
         <button className={styles.finishButton} type="submit" disabled={loading || !cart.length}>
           <span>{loading ? "Processando venda..." : "Concluir venda"}</span>
