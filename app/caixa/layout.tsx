@@ -1,9 +1,7 @@
 import type { CSSProperties } from "react";
 import { POSLayout } from "@/components/POS/POSLayout/posLayout";
-import { requireCashierUser } from "@/lib/auth";
 import { getCompanyBrand } from "@/lib/company-brand";
-import { createClient } from "@/lib/supabase/server";
-import { createPosRepository } from "@/modules/pos/pos.repository";
+import { getPosHubContext } from "@/lib/pos-hub";
 import { createPosService } from "@/modules/pos/pos.service";
 
 export const dynamic = "force-dynamic";
@@ -16,12 +14,9 @@ const brandColors = {
 } as const;
 
 export default async function CashierLayout({ children }: { children: React.ReactNode }) {
-  const auth = await requireCashierUser();
-  const supabase = await createClient();
-  const repository = createPosRepository(supabase);
-  const service = createPosService(supabase, auth);
-  const company = await repository.getCompany(auth.companyId!);
-  const brand = getCompanyBrand(company.slug, company.name);
+  const { auth, supabase, selectedCompany, companies, hubEnabled } = await getPosHubContext();
+  const service = createPosService(supabase, auth, selectedCompany.id);
+  const brand = getCompanyBrand(selectedCompany.slug, selectedCompany.name);
   const session = await service.getSessionSummary();
   const style = { "--brand": brandColors[brand.key] } as CSSProperties;
 
@@ -33,6 +28,9 @@ export default async function CashierLayout({ children }: { children: React.Reac
         brandShort={brand.short}
         userName={auth.fullName ?? auth.email ?? "Operador"}
         cashOpen={Boolean(session)}
+        centralMode={hubEnabled}
+        selectedCompanyId={selectedCompany.id}
+        companies={companies.map((company) => ({ id: company.id, name: company.name }))}
       >
         {children}
       </POSLayout>
