@@ -9,6 +9,14 @@
 --   supabase/pdv-2026-08-22.sql
 --   supabase/pdv-service-sale-2026-09-01.sql
 
+-- Compatibilidade com a busca por código interno da Sedux.
+alter table public.products
+  add column if not exists product_code text;
+
+create unique index if not exists products_company_product_code_uidx
+  on public.products (company_id, lower(product_code))
+  where product_code is not null and btrim(product_code) <> '';
+
 -- ---------------------------------------------------------------------------
 -- 1. Identifica operadores autorizados a usar o PDV Central.
 -- ---------------------------------------------------------------------------
