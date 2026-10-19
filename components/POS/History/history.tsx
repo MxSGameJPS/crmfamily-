@@ -21,7 +21,7 @@ const paymentStatus: Record<string, string> = {
   pending: "Pendente",
 };
 
-export function History({ sales, session }: { sales: PosHistorySale[]; session: CashSessionSummary | null }) {
+export function History({ sales, session, companyId }: { sales: PosHistorySale[]; session: CashSessionSummary | null; companyId: string }) {
   const router = useRouter();
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [error, setError] = useState("");
@@ -77,7 +77,7 @@ export function History({ sales, session }: { sales: PosHistorySale[]; session: 
             <div className={styles.total}><small>Total</small><strong>{brl(sale.total)}</strong></div>
             <div className={styles.status}><span>{sale.status === "cancelled" ? "Cancelada / estornada" : "Concluída"}</span></div>
             <div className={styles.actions}>
-              <Link href={`/caixa/comprovante/${sale.id}`} target="_blank">Comprovante</Link>
+              <Link href={`/caixa/comprovante/${sale.id}?companyId=${encodeURIComponent(companyId)}`} target="_blank">Comprovante</Link>
               {sale.status === "completed" ? (
                 <button type="button" onClick={() => cancelSale(sale)} disabled={loadingId === sale.id || !session}>
                   {loadingId === sale.id ? "Processando..." : "Cancelar / estornar"}
