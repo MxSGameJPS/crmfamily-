@@ -5,8 +5,10 @@ import { parseCashMovementPayload } from "@/modules/pos/pos.validation";
 
 export async function POST(request: Request) {
   try {
-    const input = parseCashMovementPayload(await request.json());
-    const { auth, supabase, selectedCompany } = await getPosHubContext();
+    const payload = await request.json() as Record<string, unknown>;
+    const input = parseCashMovementPayload(payload);
+    const preferredCompanyId = typeof payload.companyId === "string" ? payload.companyId : null;
+    const { auth, supabase, selectedCompany } = await getPosHubContext(preferredCompanyId);
     const service = createPosService(supabase, auth, selectedCompany.id);
     const movementId = await service.addMovement(input.sessionId, input.movementType, input.amount, input.description);
     return NextResponse.json({ movementId });
