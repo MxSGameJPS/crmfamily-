@@ -6,7 +6,7 @@ import { brl } from "@/lib/format";
 import type { CashSessionSummary } from "@/modules/pos/pos.types";
 import styles from "./sessionControls.module.css";
 
-export function SessionControls({ session }: { session: CashSessionSummary | null }) {
+export function SessionControls({ session, companyId }: { session: CashSessionSummary | null; companyId: string }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -37,6 +37,7 @@ export function SessionControls({ session }: { session: CashSessionSummary | nul
     try {
       await post("/api/pos/sessions", {
         action: "open",
+        companyId,
         openingAmount: data.get("openingAmount"),
         notes: data.get("notes"),
       });
@@ -55,6 +56,7 @@ export function SessionControls({ session }: { session: CashSessionSummary | nul
     try {
       await post("/api/pos/movements", {
         sessionId: session.id,
+        companyId,
         movementType: data.get("movementType"),
         amount: data.get("amount"),
         description: data.get("description"),
@@ -76,6 +78,7 @@ export function SessionControls({ session }: { session: CashSessionSummary | nul
     try {
       const body = await post("/api/pos/sessions", {
         action: "close",
+        companyId,
         sessionId: session.id,
         closingAmount: data.get("closingAmount"),
         notes: data.get("notes"),
