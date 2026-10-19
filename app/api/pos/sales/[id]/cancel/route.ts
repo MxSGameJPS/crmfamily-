@@ -6,8 +6,10 @@ import { parseCancelSalePayload } from "@/modules/pos/pos.validation";
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-    const input = parseCancelSalePayload(await request.json());
-    const { auth, supabase, selectedCompany } = await getPosHubContext();
+    const payload = await request.json() as Record<string, unknown>;
+    const input = parseCancelSalePayload(payload);
+    const preferredCompanyId = typeof payload.companyId === "string" ? payload.companyId : null;
+    const { auth, supabase, selectedCompany } = await getPosHubContext(preferredCompanyId);
     const service = createPosService(supabase, auth, selectedCompany.id);
     await service.cancelSale(id, input.reason, input.refundSessionId);
     return NextResponse.json({ ok: true });
