@@ -41,7 +41,7 @@ export function History({ sales, session, companyId }: { sales: PosHistorySale[]
       const response = await fetch(`/api/pos/sales/${sale.id}/cancel`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reason, refundSessionId: session.id }),
+        body: JSON.stringify({ reason, refundSessionId: session.id, companyId }),
       });
       const body = await response.json();
       if (!response.ok) throw new Error(body.error ?? "Não foi possível cancelar a venda.");
