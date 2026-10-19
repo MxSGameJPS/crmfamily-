@@ -71,7 +71,8 @@ export function POSLayout({
       const body = await response.json();
       if (!response.ok) throw new Error(body.error ?? "Não foi possível trocar a empresa.");
 
-      window.location.assign(pathname || "/caixa");
+      router.refresh();
+      setSwitchingCompany(false);
     } catch (error) {
       setSwitchError(error instanceof Error ? error.message : "Não foi possível trocar a empresa.");
       setSwitchingCompany(false);
